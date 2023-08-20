@@ -1,0 +1,23 @@
+# Exclude IDE specific directories
+.idea/
+.vscode/
+*.iml
+
+# Exclude environment configs
+.env
+
+# Exclude Go build and test caches
+__debug_bin
+*.out
+*.test
+*.prof
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Other
+.git/
+.gitignore
+README.md
+LICENSE

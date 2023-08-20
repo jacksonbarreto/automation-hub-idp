@@ -7,7 +7,7 @@ import (
 
 type User struct {
 	ID                 uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	Email              string    `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Email              string    `gorm:"type:varchar(255);not null;uniqueIndex:idx_email_active"`
 	Password           string    `gorm:"type:varchar(255);not null"`
 	FirstAccess        bool      `gorm:"default:true"`
 	FailedAttempts     int       `gorm:"default:0"`
@@ -18,6 +18,7 @@ type User struct {
 	UpdatedAt          time.Time `gorm:"autoUpdateTime"`
 	ResetPasswordToken string    `gorm:"type:varchar(255);index"`
 	ResetTokenExpires  *time.Time
+	IsActive           bool `gorm:"default:true;uniqueIndex:idx_email_active"`
 }
 
 func SimulateUser() User {
@@ -37,5 +38,6 @@ func SimulateUser() User {
 		UpdatedAt:          currentTime,
 		ResetPasswordToken: "randomTokenHere",
 		ResetTokenExpires:  &futureTime,
+		IsActive:           true,
 	}
 }
