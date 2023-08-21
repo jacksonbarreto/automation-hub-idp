@@ -156,7 +156,7 @@ func (s *userServiceImpl) ChangePassword(id uuid.UUID, newPassword string) error
 		return err
 	}
 
-	hashedPassword, err := s.passwordHasher.Hash(user.Password)
+	hashedPassword, err := s.passwordHasher.Hash(newPassword)
 	if err != nil {
 		s.logger.Error("Error generating hashed password for user with ID: %s, %v", id, err)
 		return errors.New("failed to change password due to internal error")
@@ -166,6 +166,7 @@ func (s *userServiceImpl) ChangePassword(id uuid.UUID, newPassword string) error
 	_, err = s.userRepo.Update(user)
 	return err
 }
+
 func (s *userServiceImpl) BlockUser(id uuid.UUID) error {
 	user, err := s.userRepo.FindByID(id)
 	if err != nil {

@@ -15,6 +15,7 @@ type UserService interface {
 	GetAllUsers(p *utils.Pagination) ([]*models.User, error)
 	ResetPassword(email string, opts ...utils.PasswordResetOptions) error
 	ChangePassword(id uuid.UUID, newPassword string) error
+	VerifyPasswordResetToken(token string) error
 	BlockUser(id uuid.UUID) error
 	UnblockUser(id uuid.UUID) error
 }
