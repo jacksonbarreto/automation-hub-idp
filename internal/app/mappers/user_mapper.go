@@ -6,8 +6,8 @@ import (
 	"idp-automations-hub/internal/app/models"
 )
 
-func MapUserToUserResponse(user *models.User) (*dto.UserResponse, error) {
-	var userResponse dto.UserResponse
+func MapUserToUserResponse(user *models.User) (*dto.UserDTO, error) {
+	var userResponse dto.UserDTO
 	if err := mapstructure.Decode(user, &userResponse); err != nil {
 		return nil, err
 	}

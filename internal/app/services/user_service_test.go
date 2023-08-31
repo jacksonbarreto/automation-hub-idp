@@ -384,7 +384,7 @@ func TestChangePassword_Success(t *testing.T) {
 	service := NewUserService(mockRepo, nil, nil, mockHasher)
 
 	// Act
-	err := service.ChangePassword(userID, newPassword)
+	err := service.UpdatePassword(userID, newPassword)
 
 	// Assert
 	assert.Nil(t, err)
@@ -402,7 +402,7 @@ func TestChangePassword_FindUserError(t *testing.T) {
 	service := NewUserService(mockRepo, nil, nil, nil)
 
 	// Act
-	err := service.ChangePassword(userID, "new-password")
+	err := service.UpdatePassword(userID, "new-password")
 
 	// Assert
 	assert.NotNil(t, err)
@@ -429,7 +429,7 @@ func TestChangePassword_HashError(t *testing.T) {
 	service := NewUserService(mockRepo, nil, mockLogger, mockHasher)
 
 	// Act
-	err := service.ChangePassword(userID, "new-password")
+	err := service.UpdatePassword(userID, "new-password")
 
 	// Assert
 	assert.NotNil(t, err)
@@ -461,7 +461,7 @@ func TestChangePassword_UpdateError(t *testing.T) {
 	service := NewUserService(mockRepo, nil, mockLogger, mockHasher)
 
 	// Act
-	err := service.ChangePassword(userID, newPassword)
+	err := service.UpdatePassword(userID, newPassword)
 
 	// Assert
 	assert.NotNil(t, err)

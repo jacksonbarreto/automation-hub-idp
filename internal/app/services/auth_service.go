@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"idp-automations-hub/internal/app/config"
 	"idp-automations-hub/internal/app/dto"
+	"idp-automations-hub/internal/app/models"
 	"idp-automations-hub/internal/app/services/iservice"
 	"idp-automations-hub/internal/app/utils"
 	"os"
@@ -15,26 +16,56 @@ import (
 )
 
 type authService struct {
-	userService          iservice.UserService
-	hasher               utils.PasswordHasher
-	blockListService     iservice.TokenBlockListService
-	logger               Logger
-	jwtSecret            string
-	RefreshTokenDuration int
-	AccessTokenDuration  int
+	userService                     iservice.UserService
+	hasher                          utils.PasswordHasher
+	blockListService                iservice.TokenBlockListService
+	logger                          iservice.Logger
+	sender                          iservice.MessageSender
+	jwtSecret                       string
+	RefreshTokenDuration            int
+	AccessTokenDuration             int
+	ExpirationTimeResetTokenInHours int
 }
 
-func NewAuthService(userService iservice.UserService, hasher utils.PasswordHasher,
-	blockListService iservice.TokenBlockListService, logger Logger, jwtSecret string) iservice.AuthService {
+func NewAuthService(userService iservice.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
+	blockListService iservice.TokenBlockListService, logger iservice.Logger, jwtSecret string) iservice.AuthService {
 	return &authService{
-		userService:          userService,
-		hasher:               hasher,
-		blockListService:     blockListService,
-		logger:               logger,
-		jwtSecret:            jwtSecret,
-		RefreshTokenDuration: getEnvExpire(config.RefreshTokenDurationDays, 7),
-		AccessTokenDuration:  getEnvExpire(config.AccessTokenDurationMinutes, 15),
+		userService:                     userService,
+		hasher:                          hasher,
+		blockListService:                blockListService,
+		logger:                          logger,
+		sender:                          sender,
+		jwtSecret:                       jwtSecret,
+		RefreshTokenDuration:            getEnvExpire(config.RefreshTokenDurationDays, 7),
+		AccessTokenDuration:             getEnvExpire(config.AccessTokenDurationMinutes, 15),
+		ExpirationTimeResetTokenInHours: getEnvExpire(config.ExpirationTimeResetTokenInHours, 24),
 	}
+}
+
+func (a *authService) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
+	hashedPassword, err := a.hasher.Hash(userDTO.Password)
+	if err != nil {
+		a.logger.Error("Error generating hashed password for user with email: %s, %v", userDTO.Email, err)
+		return nil, errors.New("failed to register user due to internal error")
+	}
+
+	user := models.User{
+		Email:    userDTO.Email,
+		Password: hashedPassword,
+	}
+
+	userCreated, err := a.userService.CreateUser(user)
+	if err != nil {
+		a.logger.Error("Error creating user: %v", err)
+		return nil, errors.New("failed to create user")
+	}
+
+	a.logger.Info("Successfully registered user: %s", user.Email)
+
+	return &dto.UserResponse{
+		ID:    userCreated.ID,
+		Email: userCreated.Email,
+	}, nil
 }
 
 func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
@@ -106,7 +137,7 @@ func (a *authService) Logout(accessToken string) error {
 		a.logger.Warn("Expiration time not found in the token for user: %s", userID)
 		return errors.New("expiration time not found in the token")
 	}
-	atDuration := time.Until(time.Unix(int64(atExpires), 0))
+	atDuration := time.Until(time.Unix(atExpires, 0))
 
 	// Add the access token and refresh token UUIDs to the block list
 	err = a.blockListService.AddToBlockList(accessUUID, atDuration)
@@ -200,6 +231,87 @@ func (a *authService) IsUserAuthenticated(accessToken string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (a *authService) RequestPasswordReset(email string) (string, time.Time, error) {
+	user, err := a.userService.GetUserByEmail(email)
+	if err != nil {
+		a.logger.Error("Error fetching user by email: %v", err)
+		return "", time.Time{}, errors.New("invalid email")
+	}
+
+	// Generate a reset token
+	resetToken := uuid.New().String()
+	resetTokenExpires := time.Now().Add(time.Hour * time.Duration(a.ExpirationTimeResetTokenInHours))
+
+	// Add the reset token to the user
+	user.ResetPasswordToken = resetToken
+	user.ResetTokenExpires = &resetTokenExpires
+
+	_, err = a.userService.UpdateUser(*user)
+	if err != nil {
+		a.logger.Error("Error updating user: %v", err)
+		return "", time.Time{}, errors.New("failed to update user")
+	}
+
+	// Send the message with the reset token
+	msg := struct {
+		Email          string
+		ResetToken     string
+		TokenExpiresIn int64
+	}{
+		Email:          email,
+		ResetToken:     resetToken,
+		TokenExpiresIn: resetTokenExpires.Unix(),
+	}
+	err = a.sender.Send(config.PasswordResetTopic, msg)
+	if err != nil {
+		a.logger.Error("Error sending reset token message: %v", err)
+		return "", time.Time{}, errors.New("failed to send reset token")
+	}
+
+	a.logger.Info("Successfully sent reset token to user: %s", email)
+	return resetToken, resetTokenExpires, nil
+}
+
+func (a *authService) ConfirmPasswordReset(token, newPassword string) error {
+	user, err := a.userService.GetUserByResetToken(token)
+	if err != nil {
+		a.logger.Error("Error fetching user by reset token: %v", err)
+		return errors.New("invalid token")
+	}
+
+	if user == nil {
+		return errors.New("invalid token")
+	}
+
+	if user.ResetTokenExpires.Before(time.Now()) {
+		return errors.New("token expired")
+	}
+
+	hashedPassword, err := a.hasher.Hash(newPassword)
+	if err != nil {
+		a.logger.Error("Error generating hashed password for user with ID: %s, %v", user.ID, err)
+		return errors.New("failed to change password due to internal error")
+	}
+
+	user.Password = hashedPassword
+	user.ResetPasswordToken = ""
+	user.ResetTokenExpires = nil
+
+	err = a.userService.UpdatePassword(user.ID, newPassword)
+	if err != nil {
+		a.logger.Error("Error updating user: %v", err)
+		return errors.New("failed to change password")
+	}
+
+	_, err = a.userService.UpdateUser(*user)
+	if err != nil {
+		a.logger.Error("Error updating user: %v", err)
+		return errors.New("failed to update user")
+	}
+
+	return nil
 }
 
 func (a *authService) generateAccessToken(userID uuid.UUID, refreshUUID string, refreshExp int64) (string, int64, error) {
