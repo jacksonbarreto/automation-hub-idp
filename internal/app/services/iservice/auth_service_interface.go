@@ -7,7 +7,7 @@ type AuthService interface {
 	Login(email, password string) (*dto.TokenDetails, error)
 	Logout(accessToken string) error
 	RefreshToken(refreshToken string) (*dto.TokenDetails, error)
-	VerifyToken(token string) (*dto.TokenDetails, error)
+	IsUserAuthenticated(accessToken string) (bool, error)
 	RequestPasswordReset(email string) error
 	ConfirmPasswordReset(token, newPassword string) error
 }

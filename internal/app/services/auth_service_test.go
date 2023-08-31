@@ -59,6 +59,80 @@ func TestLogin(t *testing.T) {
 	})
 }
 
+func TestRefreshToken(t *testing.T) {
+	mockBlockListSvc := new(service_mock.MockBlockListService)
+	mockUserSvc := new(service_mock.MockUserService)
+	mockHasher := new(utils_mock.MockHasher)
+
+	a := &authService{
+		userService:      mockUserSvc,
+		hasher:           mockHasher,
+		jwtSecret:        "test-secret",
+		blockListService: mockBlockListSvc,
+	}
+
+	userID := uuid.New()
+	refreshUUID := uuid.New().String()
+	expires := time.Now().Add(time.Hour * 24 * 7).Unix()
+
+	// Generate a valid refresh token
+	claims := jwt.MapClaims{}
+	claims["refresh_uuid"] = refreshUUID
+	claims["user_id"] = userID.String()
+	claims["exp"] = expires
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	validRefreshToken, _ := token.SignedString([]byte(a.jwtSecret))
+
+	// Generate a refresh token with a different signing method (RS256)
+	token = jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	invalidSignatureToken, _ := token.SignedString([]byte(a.jwtSecret))
+
+	t.Run("Valid Refresh Token Test", func(t *testing.T) {
+		mockBlockListSvc.On("IsInBlockList", refreshUUID).Return(false, nil)
+
+		td, err := a.RefreshToken(validRefreshToken)
+		assert.NoError(t, err)
+		assert.NotNil(t, td)
+		assert.NotEmpty(t, td.AccessToken)
+		assert.Equal(t, validRefreshToken, td.RefreshToken)
+	})
+
+	t.Run("Invalid Signature Method Test", func(t *testing.T) {
+		td, err := a.RefreshToken(invalidSignatureToken)
+		assert.Error(t, err)
+		assert.Nil(t, td)
+		assert.Contains(t, err.Error(), "unexpected signing method")
+	})
+
+	t.Run("Invalid Refresh Token Test", func(t *testing.T) {
+		invalidToken := validRefreshToken + "invalid"
+		td, err := a.RefreshToken(invalidToken)
+		assert.Error(t, err)
+		assert.Nil(t, td)
+		assert.Equal(t, "invalid refresh token", err.Error())
+	})
+
+	t.Run("Missing Refresh UUID Test", func(t *testing.T) {
+		claims["refresh_uuid"] = nil
+		token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenWithoutUUID, _ := token.SignedString([]byte(a.jwtSecret))
+
+		td, err := a.RefreshToken(tokenWithoutUUID)
+		assert.Error(t, err)
+		assert.Nil(t, td)
+		assert.Equal(t, "refresh UUID not found in the token", err.Error())
+	})
+
+	t.Run("Blocked Refresh Token Test", func(t *testing.T) {
+		mockBlockListSvc.On("IsInBlockList", refreshUUID).Return(true, nil)
+
+		td, err := a.RefreshToken(validRefreshToken)
+		assert.Error(t, err)
+		assert.Nil(t, td)
+		assert.Equal(t, "refresh token is blocked", err.Error())
+	})
+}
+
 func TestGetEnvExpire(t *testing.T) {
 	testKey := "TEST_EXPIRE"
 

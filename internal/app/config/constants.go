@@ -9,5 +9,5 @@ const (
 	EXPIRATION_TIME_RESET_TOKEN_IN_HOURS string = "EXPIRATION_TIME_RESET_TOKEN_IN_HOURS"
 	AccessTokenDurationMinutes           string = "ACCESS_TOKEN_DURATION_MINUTES"
 	RefreshTokenDurationDays             string = "REFRESH_TOKEN_DURATION_DAYS"
-	REDIS_ADDR                           string = "REDIS_ADDR"
+	RedisAddr                            string = "REDIS_ADDR"
 )
