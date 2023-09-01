@@ -15,6 +15,4 @@ type UserService interface {
 	DeleteUser(id uuid.UUID) error
 	GetAllUsers(p *utils.Pagination) ([]*models.User, error)
 	UpdatePassword(id uuid.UUID, newPassword string) error
-	BlockUser(id uuid.UUID) error
-	UnblockUser(id uuid.UUID) error
 }

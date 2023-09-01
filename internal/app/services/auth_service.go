@@ -10,6 +10,7 @@ import (
 	"idp-automations-hub/internal/app/models"
 	"idp-automations-hub/internal/app/services/iservice"
 	"idp-automations-hub/internal/app/utils"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -25,6 +26,12 @@ type authService struct {
 	RefreshTokenDuration            int
 	AccessTokenDuration             int
 	ExpirationTimeResetTokenInHours int
+	MaxLoginAttemptsBeforeBlock     int
+	LoginAttemptBase                time.Duration
+	MinTimeBetweenAttemptsInSeconds time.Duration
+	AccountBlockedTopic             string
+	AccountCreatedTopic             string
+	PasswordResetTopic              string
 }
 
 func NewAuthService(userService iservice.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
@@ -36,9 +43,15 @@ func NewAuthService(userService iservice.UserService, hasher utils.PasswordHashe
 		logger:                          logger,
 		sender:                          sender,
 		jwtSecret:                       jwtSecret,
-		RefreshTokenDuration:            getEnvExpire(config.RefreshTokenDurationDays, 7),
-		AccessTokenDuration:             getEnvExpire(config.AccessTokenDurationMinutes, 15),
-		ExpirationTimeResetTokenInHours: getEnvExpire(config.ExpirationTimeResetTokenInHours, 24),
+		RefreshTokenDuration:            getEnvInt(config.RefreshTokenDurationDays, 7),
+		AccessTokenDuration:             getEnvInt(config.AccessTokenDurationMinutes, 15),
+		ExpirationTimeResetTokenInHours: getEnvInt(config.ExpirationTimeResetTokenInHours, 24),
+		MaxLoginAttemptsBeforeBlock:     getEnvInt(config.MaxLoginAttemptsBeforeBlock, 5),
+		LoginAttemptBase:                time.Duration(getEnvInt(config.LoginAttemptBase, 2)),
+		MinTimeBetweenAttemptsInSeconds: time.Duration(getEnvInt(config.MinTimeBetweenAttemptsInSeconds, 5)),
+		AccountBlockedTopic:             config.AccountBlockedTopic,
+		AccountCreatedTopic:             config.AccountCreatedTopic,
+		PasswordResetTopic:              config.PasswordResetTopic,
 	}
 }
 
@@ -61,6 +74,15 @@ func (a *authService) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
 	}
 
 	a.logger.Info("Successfully registered user: %s", user.Email)
+	msg := struct {
+		Email string
+	}{
+		Email: user.Email,
+	}
+	err = a.sender.Send(a.AccountCreatedTopic, msg)
+	if err != nil {
+		a.logger.Error("Error sending account created message: %v", err)
+	}
 
 	return &dto.UserResponse{
 		ID:    userCreated.ID,
@@ -75,15 +97,64 @@ func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
 		return nil, errors.New("invalid credentials")
 	}
 
+	// Check if account is blocked and if the block time hasn't expired
+	now := time.Now()
+	if user.IsBlocked && user.BlockedUntil != nil && now.Before(*user.BlockedUntil) {
+		a.logger.Warn("Login attempt for blocked user: %s", email)
+		return nil, errors.New("account is blocked")
+	}
+
+	// Check for rapid subsequent login attempts
+	if user.LastAttempt != nil && now.Sub(*user.LastAttempt) < a.MinTimeBetweenAttemptsInSeconds*time.Second {
+		a.logger.Warn("Rapid subsequent login attempt detected for user: %s", email)
+		return nil, errors.New("please wait a moment before trying again")
+	}
+
+	// If the account was blocked but the block time has expired, unblock the account
+	if user.IsBlocked && (user.BlockedUntil == nil || now.After(*user.BlockedUntil)) {
+		user.IsBlocked = false
+		user.FailedAttempts = 0
+		user.BlockedUntil = nil
+		user, err = a.userService.UpdateUser(*user)
+		if err != nil {
+			return nil, errors.New("failed to unblock account")
+		}
+	}
+
 	hashErr := a.hasher.Compare(user.Password, password)
 	if hashErr != nil {
+		user.FailedAttempts++
+		user.LastAttempt = &now
+		if user.FailedAttempts >= a.MaxLoginAttemptsBeforeBlock {
+			baseBlockDuration := a.LoginAttemptBase * time.Minute
+			blockDuration := baseBlockDuration * time.Duration(math.Pow(2, float64(user.FailedAttempts-a.MaxLoginAttemptsBeforeBlock)))
+			blockedUntil := now.Add(blockDuration)
+			user.BlockedUntil = &blockedUntil
+			user.IsBlocked = true
+			a.logger.Warn("User %s is blocked until %s", email, blockedUntil.String())
+			msg := struct {
+				Email        string
+				BlockedUntil time.Time
+			}{
+				Email:        email,
+				BlockedUntil: blockedUntil,
+			}
+			err = a.sender.Send(a.AccountBlockedTopic, msg)
+		}
+		_, updateErr := a.userService.UpdateUser(*user)
+		if updateErr != nil {
+			a.logger.Error("Failed to update user after failed login: %v", updateErr)
+		}
 		a.logger.Warn("Hash comparison failed for user %s: %v", email, hashErr)
 		return nil, errors.New("invalid credentials")
 	}
 
-	if user.IsBlocked {
-		a.logger.Warn("Login attempt for blocked user: %s", email)
-		return nil, errors.New("account is blocked")
+	// Reset FailedAttempts since login is successful
+	user.FailedAttempts = 0
+	user.LastAttempt = &now
+	_, updateErr := a.userService.UpdateUser(*user)
+	if updateErr != nil {
+		a.logger.Error("Failed to reset failed attempts for user %s: %v", email, updateErr)
 	}
 
 	td := &dto.TokenDetails{}
@@ -264,7 +335,7 @@ func (a *authService) RequestPasswordReset(email string) (string, time.Time, err
 		ResetToken:     resetToken,
 		TokenExpiresIn: resetTokenExpires.Unix(),
 	}
-	err = a.sender.Send(config.PasswordResetTopic, msg)
+	err = a.sender.Send(a.PasswordResetTopic, msg)
 	if err != nil {
 		a.logger.Error("Error sending reset token message: %v", err)
 		return "", time.Time{}, errors.New("failed to send reset token")
@@ -314,6 +385,39 @@ func (a *authService) ConfirmPasswordReset(token, newPassword string) error {
 	return nil
 }
 
+func (a *authService) ChangePassword(email string, newPassword string) error {
+	user, err := a.userService.GetUserByEmail(email)
+	if err != nil {
+		a.logger.Error("Error fetching user by email: %v", err)
+		return errors.New("invalid email")
+	}
+
+	hashedPassword, hashErr := a.hasher.Hash(newPassword)
+	if hashErr != nil {
+		a.logger.Error("Error hashing new password: %v", hashErr)
+		return errors.New("failed to hash password")
+	}
+
+	user.Password = hashedPassword
+
+	user.ResetPasswordToken = ""
+	user.ResetTokenExpires = nil
+
+	updateErr := a.userService.UpdatePassword(user.ID, newPassword)
+	if updateErr != nil {
+		a.logger.Error("Error updating user password: %v", updateErr)
+		return errors.New("failed to update password")
+	}
+	_, err = a.userService.UpdateUser(*user)
+	if err != nil {
+		a.logger.Error("Error updating user: %v", err)
+		return errors.New("failed to update user")
+	}
+
+	a.logger.Info("Successfully changed password for user: %s", email)
+	return nil
+}
+
 func (a *authService) generateAccessToken(userID uuid.UUID, refreshUUID string, refreshExp int64) (string, int64, error) {
 	expires := time.Now().Add(time.Minute * time.Duration(a.AccessTokenDuration)).Unix()
 
@@ -343,7 +447,7 @@ func (a *authService) generateRefreshToken(userID uuid.UUID) (string, string, in
 	return refreshToken, refreshUUID, expires, err
 }
 
-func getEnvExpire(key string, defaultVal int) int {
+func getEnvInt(key string, defaultVal int) int {
 	if value, exists := os.LookupEnv(key); exists {
 		intVal, err := strconv.Atoi(value)
 		if err == nil {
