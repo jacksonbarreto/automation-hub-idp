@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"idp-automations-hub/internal/app/config"
 )
 
 func NewPostgresDatabase(user, password, dbName, dbHost string, dbPort int) (*gorm.DB, error) {
@@ -15,5 +16,14 @@ func NewPostgresDatabase(user, password, dbName, dbHost string, dbPort int) (*go
 		return nil, err
 	}
 
+	return db, nil
+}
+
+func GetDefaultDB() (*gorm.DB, error) {
+	db, err := NewPostgresDatabase(config.PostgresConfig.User, config.PostgresConfig.Password,
+		config.PostgresConfig.DbName, config.PostgresConfig.DbHost, config.PostgresConfig.DbPort)
+	if err != nil {
+		return nil, err
+	}
 	return db, nil
 }
