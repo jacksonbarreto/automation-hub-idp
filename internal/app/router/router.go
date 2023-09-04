@@ -13,7 +13,7 @@ func Initialize() {
 	initializeRoutes(router)
 
 	// run server
-	port := ":" + config.WebServerConfig.Port
+	port := ":" + config.ServerConfig.Port
 	err := router.Run(port)
 	if err != nil {
 		return
