@@ -1,11 +1,11 @@
-package iservice
+package authentication
 
 import (
 	"idp-automations-hub/internal/app/dto"
 	"time"
 )
 
-type AuthService interface {
+type IService interface {
 	Register(userDTO dto.UserDTO) (*dto.UserResponse, error)
 	Login(email, password string) (*dto.TokenDetails, error)
 	Logout(accessToken string) error

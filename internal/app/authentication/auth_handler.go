@@ -1,30 +1,29 @@
-package controllers
+package authentication
 
 import (
 	"github.com/gin-gonic/gin"
 	"idp-automations-hub/internal/app/dto"
-	"idp-automations-hub/internal/app/services/iservice"
 	"net/http"
 )
 
-type AuthController struct {
-	authService iservice.AuthService
+type Handler struct {
+	authService IService
 }
 
-func NewAuthController(authService iservice.AuthService) *AuthController {
-	return &AuthController{
+func NewHandler(authService IService) *Handler {
+	return &Handler{
 		authService: authService,
 	}
 }
 
-func (ac *AuthController) Register(c *gin.Context) {
+func (h *Handler) Register(c *gin.Context) {
 	var userDTO dto.UserDTO
 	if err := c.ShouldBindJSON(&userDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := ac.authService.Register(userDTO)
+	response, err := h.authService.Register(userDTO)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -33,11 +32,11 @@ func (ac *AuthController) Register(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (ac *AuthController) Login(c *gin.Context) {
+func (h *Handler) Login(c *gin.Context) {
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
-	tokenDetails, err := ac.authService.Login(email, password)
+	tokenDetails, err := h.authService.Login(email, password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -46,10 +45,10 @@ func (ac *AuthController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenDetails)
 }
 
-func (ac *AuthController) Logout(c *gin.Context) {
+func (h *Handler) Logout(c *gin.Context) {
 	accessToken := c.GetHeader("Authorization")
 
-	err := ac.authService.Logout(accessToken)
+	err := h.authService.Logout(accessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -58,10 +57,10 @@ func (ac *AuthController) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
-func (ac *AuthController) RefreshToken(c *gin.Context) {
+func (h *Handler) RefreshToken(c *gin.Context) {
 	refreshToken := c.PostForm("refreshToken")
 
-	tokenDetails, err := ac.authService.RefreshToken(refreshToken)
+	tokenDetails, err := h.authService.RefreshToken(refreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -70,10 +69,10 @@ func (ac *AuthController) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenDetails)
 }
 
-func (ac *AuthController) IsUserAuthenticated(c *gin.Context) {
+func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 	accessToken := c.GetHeader("Authorization")
 
-	isAuthenticated, err := ac.authService.IsUserAuthenticated(accessToken)
+	isAuthenticated, err := h.authService.IsUserAuthenticated(accessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -86,10 +85,10 @@ func (ac *AuthController) IsUserAuthenticated(c *gin.Context) {
 	}
 }
 
-func (ac *AuthController) RequestPasswordReset(c *gin.Context) {
+func (h *Handler) RequestPasswordReset(c *gin.Context) {
 	email := c.PostForm("email")
 
-	resetToken, resetTokenExpires, err := ac.authService.RequestPasswordReset(email)
+	resetToken, resetTokenExpires, err := h.authService.RequestPasswordReset(email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -101,11 +100,11 @@ func (ac *AuthController) RequestPasswordReset(c *gin.Context) {
 	})
 }
 
-func (ac *AuthController) ConfirmPasswordReset(c *gin.Context) {
+func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 	token := c.PostForm("token")
 	newPassword := c.PostForm("newPassword")
 
-	err := ac.authService.ConfirmPasswordReset(token, newPassword)
+	err := h.authService.ConfirmPasswordReset(token, newPassword)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -114,11 +113,11 @@ func (ac *AuthController) ConfirmPasswordReset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }
 
-func (ac *AuthController) ChangePassword(c *gin.Context) {
+func (h *Handler) ChangePassword(c *gin.Context) {
 	email := c.PostForm("email")
 	newPassword := c.PostForm("newPassword")
 
-	err := ac.authService.ChangePassword(email, newPassword)
+	err := h.authService.ChangePassword(email, newPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

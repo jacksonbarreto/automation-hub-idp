@@ -1,4 +1,4 @@
-package services
+package authentication
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type authService struct {
+type service struct {
 	userService      iservice.UserService
 	hasher           utils.PasswordHasher
 	blockListService iservice.TokenBlockListService
@@ -23,9 +23,9 @@ type authService struct {
 	jwtSecret        string
 }
 
-func NewAuthService(userService iservice.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
-	blockListService iservice.TokenBlockListService, logger iservice.Logger, jwtSecret string) iservice.AuthService {
-	return &authService{
+func NewService(userService iservice.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
+	blockListService iservice.TokenBlockListService, logger iservice.Logger, jwtSecret string) IService {
+	return &service{
 		userService:      userService,
 		hasher:           hasher,
 		blockListService: blockListService,
@@ -35,7 +35,7 @@ func NewAuthService(userService iservice.UserService, hasher utils.PasswordHashe
 	}
 }
 
-func (a *authService) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
+func (a *service) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
 	hashedPassword, err := a.hasher.Hash(userDTO.Password)
 	if err != nil {
 		a.logger.Error("Error generating hashed password for user with email: %s, %v", userDTO.Email, err)
@@ -70,7 +70,7 @@ func (a *authService) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
 	}, nil
 }
 
-func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
+func (a *service) Login(email, password string) (*dto.TokenDetails, error) {
 	user, err := a.userService.GetUserByEmail(email)
 	if err != nil {
 		a.logger.Error("Error fetching user by email: %v", err)
@@ -159,7 +159,7 @@ func calculateBlockDuration(failedLoginAttempts int) time.Duration {
 	return initialBlockDuration * time.Duration(math.Pow(2, exponent))
 }
 
-func (a *authService) Logout(accessToken string) error {
+func (a *service) Logout(accessToken string) error {
 	_, claims, err := a.parseAndValidateToken(accessToken)
 
 	userID, ok := claims["user_id"].(string)
@@ -211,7 +211,7 @@ func (a *authService) Logout(accessToken string) error {
 	return nil
 }
 
-func (a *authService) RefreshToken(refreshToken string) (*dto.TokenDetails, error) {
+func (a *service) RefreshToken(refreshToken string) (*dto.TokenDetails, error) {
 	_, claims, err := a.parseAndValidateToken(refreshToken)
 
 	refreshUUID, ok := claims["refresh_uuid"].(string)
@@ -262,7 +262,7 @@ func (a *authService) RefreshToken(refreshToken string) (*dto.TokenDetails, erro
 	return td, nil
 }
 
-func (a *authService) IsUserAuthenticated(accessToken string) (bool, error) {
+func (a *service) IsUserAuthenticated(accessToken string) (bool, error) {
 	_, claims, err := a.parseAndValidateToken(accessToken)
 	if err != nil {
 		a.logger.Error("Error parsing accessToken: %v", err)
@@ -289,7 +289,7 @@ func (a *authService) IsUserAuthenticated(accessToken string) (bool, error) {
 	return true, nil
 }
 
-func (a *authService) RequestPasswordReset(email string) (string, time.Time, error) {
+func (a *service) RequestPasswordReset(email string) (string, time.Time, error) {
 	user, err := a.userService.GetUserByEmail(email)
 	if err != nil {
 		a.logger.Error("Error fetching user by email: %v", err)
@@ -330,7 +330,7 @@ func (a *authService) RequestPasswordReset(email string) (string, time.Time, err
 	return resetToken, resetTokenExpires, nil
 }
 
-func (a *authService) ConfirmPasswordReset(token, newPassword string) error {
+func (a *service) ConfirmPasswordReset(token, newPassword string) error {
 	user, err := a.userService.GetUserByResetToken(token)
 	if err != nil {
 		a.logger.Error("Error fetching user by reset token: %v", err)
@@ -370,7 +370,7 @@ func (a *authService) ConfirmPasswordReset(token, newPassword string) error {
 	return nil
 }
 
-func (a *authService) ChangePassword(email string, newPassword string) error {
+func (a *service) ChangePassword(email string, newPassword string) error {
 	user, err := a.userService.GetUserByEmail(email)
 	if err != nil {
 		a.logger.Error("Error fetching user by email: %v", err)
@@ -403,7 +403,7 @@ func (a *authService) ChangePassword(email string, newPassword string) error {
 	return nil
 }
 
-func (a *authService) generateAccessToken(userID uuid.UUID, refreshUUID string, refreshExp int64) (string, int64, error) {
+func (a *service) generateAccessToken(userID uuid.UUID, refreshUUID string, refreshExp int64) (string, int64, error) {
 	expires := time.Now().Add(time.Minute * config.AuthenticationConfig.AccessTokenDurationMinutes).Unix()
 
 	claims := jwt.MapClaims{}
@@ -418,7 +418,7 @@ func (a *authService) generateAccessToken(userID uuid.UUID, refreshUUID string, 
 	return accessToken, expires, err
 }
 
-func (a *authService) generateRefreshToken(userID uuid.UUID) (string, string, int64, error) {
+func (a *service) generateRefreshToken(userID uuid.UUID) (string, string, int64, error) {
 	refreshUUID := uuid.New().String()
 	expires := time.Now().Add(config.AuthenticationConfig.RefreshTokenDurationDays).Unix()
 
@@ -432,7 +432,7 @@ func (a *authService) generateRefreshToken(userID uuid.UUID) (string, string, in
 	return refreshToken, refreshUUID, expires, err
 }
 
-func (a *authService) parseAndValidateToken(tokenString string) (*jwt.Token, jwt.MapClaims, error) {
+func (a *service) parseAndValidateToken(tokenString string) (*jwt.Token, jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			a.logger.Error("Unexpected signing method: %v", token.Header["alg"])
