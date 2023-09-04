@@ -11,5 +11,9 @@ func main() {
 		panic(err)
 	}
 
-	router.Initialize()
+	err = router.Initialize()
+	if err != nil {
+		panic(err)
+	}
+
 }

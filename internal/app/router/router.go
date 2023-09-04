@@ -5,17 +5,22 @@ import (
 	"idp-automations-hub/internal/app/config"
 )
 
-func Initialize() {
+func Initialize() error {
 	// initialize Router
 	router := gin.Default()
 
 	// initialize routes
-	initializeRoutes(router)
+	err := initializeRoutes(router)
+	if err != nil {
+		return err
+	}
 
 	// run server
 	port := ":" + config.ServerConfig.Port
-	err := router.Run(port)
+	err = router.Run(port)
 	if err != nil {
-		return
+		return err
 	}
+
+	return nil
 }
