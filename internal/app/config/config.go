@@ -5,16 +5,32 @@ import (
 	"strconv"
 )
 
-const (
-	RedisAddr string = "REDIS_ADDR"
-)
-
 var (
 	AuthenticationConfig *authenticationConfig
+	ServerConfig         *serverConfig
+	KafkaConfig          *kafkaConfig
+	PostgresConfig       *postgresConfig
+	RedisConfig          *redisConfig
 )
 
 func Setup() error {
 	var err error
+	KafkaConfig, err = newKafkaConfig()
+	if err != nil {
+		return err
+	}
+	PostgresConfig, err = newPostgresConfig()
+	if err != nil {
+		return err
+	}
+	RedisConfig, err = newRedisConfig()
+	if err != nil {
+		return err
+	}
+	ServerConfig, err = newServerConfig()
+	if err != nil {
+		return err
+	}
 	AuthenticationConfig, err = newAuthenticationConfig()
 	if err != nil {
 		return err
