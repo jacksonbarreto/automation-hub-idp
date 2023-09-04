@@ -3,6 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
+	"idp-automations-hub/internal/app/authentication"
+	"idp-automations-hub/internal/app/repositories"
+	"idp-automations-hub/internal/app/services"
+	"idp-automations-hub/internal/app/utils"
+	"idp-automations-hub/internal/infra"
 	"time"
 )
 
@@ -16,6 +21,7 @@ const (
 	passwordResetTopic              string = "PASSWORD_RESET_TOPIC"
 	accountBlockedTopic             string = "ACCOUNT_BLOCKED_TOPIC"
 	accountCreatedTopic             string = "ACCOUNT_CREATED_TOPIC"
+	jwtSecret                              = "JWT_SECRET"
 )
 
 type authenticationConfig struct {
@@ -28,6 +34,7 @@ type authenticationConfig struct {
 	PasswordResetTopic            string
 	AccountBlockedTopic           string
 	AccountCreatedTopic           string
+	JwtSecret                     string
 }
 
 func newAuthenticationConfig() (*authenticationConfig, error) {
@@ -49,6 +56,12 @@ func newAuthenticationConfig() (*authenticationConfig, error) {
 		return nil, errors.New(errorMessage)
 	}
 
+	jwtSecret := getEnvString(jwtSecret, "NULL")
+	if jwtSecret == "NULL" {
+		errorMessage := fmt.Sprintf("error: JWT secret is not set, please check the environment variable: %s", jwtSecret)
+		return nil, errors.New(errorMessage)
+	}
+
 	return &authenticationConfig{
 		BaseBlockDurationMinutes:      baseBlockDurationMinutesValue,
 		MaxLoginAttemptsBeforeBlock:   maxLoginAttemptsBeforeBlockValue,
@@ -59,5 +72,26 @@ func newAuthenticationConfig() (*authenticationConfig, error) {
 		PasswordResetTopic:            passwordResetTopicValue,
 		AccountBlockedTopic:           accountBlockedTopicValue,
 		AccountCreatedTopic:           accountCreatedTopicValue,
+		JwtSecret:                     jwtSecret,
 	}, nil
+}
+
+func GetDefaultAuthService() (authentication.IService, error) {
+	logger, err := services.NewKafkaLogger(KafkaConfig.BrokersAddr, KafkaConfig.LoggerTopic)
+	if err != nil {
+		return nil, err
+	}
+	database, err := infra.GetDefaultDB()
+	if err != nil {
+		return nil, err
+	}
+	userRepository := repositories.NewGormUserRepository(database, logger)
+	userService := services.NewUserService(userRepository, logger)
+	hasher := utils.DefaultBcryptHasher()
+	sender, err := services.NewKafkaMessageSender()
+	if err != nil {
+		return nil, err
+	}
+	blockListService := services.NewRedisTokenBlockListService()
+	return authentication.NewService(userService, hasher, sender, blockListService, logger, AuthenticationConfig.JwtSecret), nil
 }
