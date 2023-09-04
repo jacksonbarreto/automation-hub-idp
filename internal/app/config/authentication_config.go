@@ -3,11 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"idp-automations-hub/internal/app/authentication"
-	"idp-automations-hub/internal/app/repositories"
-	"idp-automations-hub/internal/app/services"
-	"idp-automations-hub/internal/app/utils"
-	"idp-automations-hub/internal/infra"
 	"time"
 )
 
@@ -74,24 +69,4 @@ func newAuthenticationConfig() (*authenticationConfig, error) {
 		AccountCreatedTopic:           accountCreatedTopicValue,
 		JwtSecret:                     jwtSecret,
 	}, nil
-}
-
-func GetDefaultAuthService() (authentication.IService, error) {
-	logger, err := services.NewKafkaLogger(KafkaConfig.BrokersAddr, KafkaConfig.LoggerTopic)
-	if err != nil {
-		return nil, err
-	}
-	database, err := infra.GetDefaultDB()
-	if err != nil {
-		return nil, err
-	}
-	userRepository := repositories.NewGormUserRepository(database, logger)
-	userService := services.NewUserService(userRepository, logger)
-	hasher := utils.DefaultBcryptHasher()
-	sender, err := services.NewKafkaMessageSender()
-	if err != nil {
-		return nil, err
-	}
-	blockListService := services.NewRedisTokenBlockListService()
-	return authentication.NewService(userService, hasher, sender, blockListService, logger, AuthenticationConfig.JwtSecret), nil
 }

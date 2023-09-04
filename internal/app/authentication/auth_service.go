@@ -8,8 +8,11 @@ import (
 	"idp-automations-hub/internal/app/config"
 	"idp-automations-hub/internal/app/dto"
 	"idp-automations-hub/internal/app/models"
+	"idp-automations-hub/internal/app/repositories"
+	"idp-automations-hub/internal/app/services"
 	"idp-automations-hub/internal/app/services/iservice"
 	"idp-automations-hub/internal/app/utils"
+	"idp-automations-hub/internal/infra"
 	"math"
 	"time"
 )
@@ -33,6 +36,26 @@ func NewService(userService iservice.UserService, hasher utils.PasswordHasher, s
 		sender:           sender,
 		jwtSecret:        jwtSecret,
 	}
+}
+
+func GetDefaultAuthService() (IService, error) {
+	logger, err := services.NewKafkaLogger(config.KafkaConfig.BrokersAddr, config.KafkaConfig.LoggerTopic)
+	if err != nil {
+		return nil, err
+	}
+	database, err := infra.GetDefaultDB()
+	if err != nil {
+		return nil, err
+	}
+	userRepository := repositories.NewGormUserRepository(database, logger)
+	userService := services.NewUserService(userRepository, logger)
+	hasher := utils.DefaultBcryptHasher()
+	sender, err := services.NewKafkaMessageSender()
+	if err != nil {
+		return nil, err
+	}
+	blockListService := services.NewRedisTokenBlockListService()
+	return NewService(userService, hasher, sender, blockListService, logger, config.AuthenticationConfig.JwtSecret), nil
 }
 
 func (a *service) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
