@@ -11,47 +11,27 @@ import (
 	"idp-automations-hub/internal/app/services/iservice"
 	"idp-automations-hub/internal/app/utils"
 	"math"
-	"os"
-	"strconv"
 	"time"
 )
 
 type authService struct {
-	userService                     iservice.UserService
-	hasher                          utils.PasswordHasher
-	blockListService                iservice.TokenBlockListService
-	logger                          iservice.Logger
-	sender                          iservice.MessageSender
-	jwtSecret                       string
-	RefreshTokenDuration            int
-	AccessTokenDuration             int
-	ExpirationTimeResetTokenInHours int
-	MaxLoginAttemptsBeforeBlock     int
-	LoginAttemptBase                time.Duration
-	MinTimeBetweenAttemptsInSeconds time.Duration
-	AccountBlockedTopic             string
-	AccountCreatedTopic             string
-	PasswordResetTopic              string
+	userService      iservice.UserService
+	hasher           utils.PasswordHasher
+	blockListService iservice.TokenBlockListService
+	logger           iservice.Logger
+	sender           iservice.MessageSender
+	jwtSecret        string
 }
 
 func NewAuthService(userService iservice.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
 	blockListService iservice.TokenBlockListService, logger iservice.Logger, jwtSecret string) iservice.AuthService {
 	return &authService{
-		userService:                     userService,
-		hasher:                          hasher,
-		blockListService:                blockListService,
-		logger:                          logger,
-		sender:                          sender,
-		jwtSecret:                       jwtSecret,
-		RefreshTokenDuration:            getEnvInt(config.RefreshTokenDurationDays, 7),
-		AccessTokenDuration:             getEnvInt(config.AccessTokenDurationMinutes, 15),
-		ExpirationTimeResetTokenInHours: getEnvInt(config.ExpirationTimeResetTokenInHours, 24),
-		MaxLoginAttemptsBeforeBlock:     getEnvInt(config.MaxLoginAttemptsBeforeBlock, 5),
-		LoginAttemptBase:                time.Duration(getEnvInt(config.LoginAttemptBase, 2)),
-		MinTimeBetweenAttemptsInSeconds: time.Duration(getEnvInt(config.MinTimeBetweenAttemptsInSeconds, 5)),
-		AccountBlockedTopic:             config.AccountBlockedTopic,
-		AccountCreatedTopic:             config.AccountCreatedTopic,
-		PasswordResetTopic:              config.PasswordResetTopic,
+		userService:      userService,
+		hasher:           hasher,
+		blockListService: blockListService,
+		logger:           logger,
+		sender:           sender,
+		jwtSecret:        jwtSecret,
 	}
 }
 
@@ -79,7 +59,7 @@ func (a *authService) Register(userDTO dto.UserDTO) (*dto.UserResponse, error) {
 	}{
 		Email: user.Email,
 	}
-	err = a.sender.Send(a.AccountCreatedTopic, msg)
+	err = a.sender.Send(config.AuthenticationConfig.AccountCreatedTopic, msg)
 	if err != nil {
 		a.logger.Error("Error sending account created message: %v", err)
 	}
@@ -105,7 +85,7 @@ func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
 	}
 
 	// Check for rapid subsequent login attempts
-	if user.LastAttempt != nil && now.Sub(*user.LastAttempt) < a.MinTimeBetweenAttemptsInSeconds*time.Second {
+	if user.LastAttempt != nil && now.Sub(*user.LastAttempt) < config.AuthenticationConfig.MinTimeBetweenAttemptsSeconds*time.Second {
 		a.logger.Warn("Rapid subsequent login attempt detected for user: %s", email)
 		return nil, errors.New("please wait a moment before trying again")
 	}
@@ -125,9 +105,8 @@ func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
 	if hashErr != nil {
 		user.FailedAttempts++
 		user.LastAttempt = &now
-		if user.FailedAttempts >= a.MaxLoginAttemptsBeforeBlock {
-			baseBlockDuration := a.LoginAttemptBase * time.Minute
-			blockDuration := baseBlockDuration * time.Duration(math.Pow(2, float64(user.FailedAttempts-a.MaxLoginAttemptsBeforeBlock)))
+		if user.FailedAttempts >= config.AuthenticationConfig.MaxLoginAttemptsBeforeBlock {
+			blockDuration := calculateBlockDuration(user.FailedAttempts)
 			blockedUntil := now.Add(blockDuration)
 			user.BlockedUntil = &blockedUntil
 			user.IsBlocked = true
@@ -139,7 +118,7 @@ func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
 				Email:        email,
 				BlockedUntil: blockedUntil,
 			}
-			err = a.sender.Send(a.AccountBlockedTopic, msg)
+			err = a.sender.Send(config.AuthenticationConfig.AccountBlockedTopic, msg)
 		}
 		_, updateErr := a.userService.UpdateUser(*user)
 		if updateErr != nil {
@@ -172,6 +151,12 @@ func (a *authService) Login(email, password string) (*dto.TokenDetails, error) {
 	a.logger.Info("Successfully logged in user: %s", email)
 
 	return td, nil
+}
+
+func calculateBlockDuration(failedLoginAttempts int) time.Duration {
+	exponent := float64(failedLoginAttempts - config.AuthenticationConfig.MaxLoginAttemptsBeforeBlock)
+	initialBlockDuration := time.Duration(config.AuthenticationConfig.BaseBlockDurationMinutes) * time.Minute
+	return initialBlockDuration * time.Duration(math.Pow(2, exponent))
 }
 
 func (a *authService) Logout(accessToken string) error {
@@ -313,7 +298,7 @@ func (a *authService) RequestPasswordReset(email string) (string, time.Time, err
 
 	// Generate a reset token
 	resetToken := uuid.New().String()
-	resetTokenExpires := time.Now().Add(time.Hour * time.Duration(a.ExpirationTimeResetTokenInHours))
+	resetTokenExpires := time.Now().Add(time.Hour * config.AuthenticationConfig.ExpirationTimeResetTokenHours)
 
 	// Add the reset token to the user
 	user.ResetPasswordToken = resetToken
@@ -335,7 +320,7 @@ func (a *authService) RequestPasswordReset(email string) (string, time.Time, err
 		ResetToken:     resetToken,
 		TokenExpiresIn: resetTokenExpires.Unix(),
 	}
-	err = a.sender.Send(a.PasswordResetTopic, msg)
+	err = a.sender.Send(config.AuthenticationConfig.PasswordResetTopic, msg)
 	if err != nil {
 		a.logger.Error("Error sending reset token message: %v", err)
 		return "", time.Time{}, errors.New("failed to send reset token")
@@ -419,7 +404,7 @@ func (a *authService) ChangePassword(email string, newPassword string) error {
 }
 
 func (a *authService) generateAccessToken(userID uuid.UUID, refreshUUID string, refreshExp int64) (string, int64, error) {
-	expires := time.Now().Add(time.Minute * time.Duration(a.AccessTokenDuration)).Unix()
+	expires := time.Now().Add(time.Minute * config.AuthenticationConfig.AccessTokenDurationMinutes).Unix()
 
 	claims := jwt.MapClaims{}
 	claims["user_id"] = userID.String()
@@ -435,7 +420,7 @@ func (a *authService) generateAccessToken(userID uuid.UUID, refreshUUID string, 
 
 func (a *authService) generateRefreshToken(userID uuid.UUID) (string, string, int64, error) {
 	refreshUUID := uuid.New().String()
-	expires := time.Now().Add(time.Hour * 24 * time.Duration(a.RefreshTokenDuration)).Unix()
+	expires := time.Now().Add(config.AuthenticationConfig.RefreshTokenDurationDays).Unix()
 
 	claims := jwt.MapClaims{}
 	claims["refresh_uuid"] = refreshUUID
@@ -445,16 +430,6 @@ func (a *authService) generateRefreshToken(userID uuid.UUID) (string, string, in
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	refreshToken, err := token.SignedString([]byte(a.jwtSecret))
 	return refreshToken, refreshUUID, expires, err
-}
-
-func getEnvInt(key string, defaultVal int) int {
-	if value, exists := os.LookupEnv(key); exists {
-		intVal, err := strconv.Atoi(value)
-		if err == nil {
-			return intVal
-		}
-	}
-	return defaultVal
 }
 
 func (a *authService) parseAndValidateToken(tokenString string) (*jwt.Token, jwt.MapClaims, error) {
