@@ -3,8 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
-	"idp-automations-hub/internal/infra"
 )
 
 const (
@@ -52,12 +50,4 @@ func newPostgresConfig() (*postgresConfig, error) {
 		DbHost:   host,
 		DbPort:   port,
 	}, nil
-}
-
-func GetDefaultDB() (*gorm.DB, error) {
-	db, err := infra.NewPostgresDatabase(PostgresConfig.User, PostgresConfig.Password, PostgresConfig.DbName, PostgresConfig.DbHost, PostgresConfig.DbPort)
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
 }
