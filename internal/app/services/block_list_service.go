@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/go-redis/redis/v8"
 	"idp-automations-hub/internal/app/config"
-	"os"
 	"time"
 )
 import "idp-automations-hub/internal/app/services/iservice"
@@ -14,14 +13,9 @@ type tokenBlockListServiceImpl struct {
 	ctx    context.Context
 }
 
-func NewTokenBlockListService() iservice.TokenBlockListService {
-	redisAddr := os.Getenv(config.RedisAddr)
-	if redisAddr == "" {
-		redisAddr = "redis:6379"
-	}
-
+func NewRedisTokenBlockListService() iservice.TokenBlockListService {
 	rdb := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
+		Addr: config.RedisConfig.RedisAddr,
 	})
 
 	ctx := context.TODO()
