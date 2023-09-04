@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewDatabase(user, password, dbName, dbHost string, dbPort int) (*gorm.DB, error) {
+func NewPostgresDatabase(user, password, dbName, dbHost string, dbPort int) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=UTC",
 		dbHost, user, password, dbName, dbPort)
 
