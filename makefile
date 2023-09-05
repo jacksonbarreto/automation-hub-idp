@@ -2,6 +2,17 @@
 # Variables
 APP_NAME = "IDP"
 
+# Determine the platform
+ifdef ComSpec
+    RM = if exist "$(APP_NAME)$(APP_EXT)" del /Q /F
+    RMDIR = if exist
+    APP_EXT = .exe
+else
+    RM = rm -rf
+    RMDIR = rm -rf
+    APP_EXT =
+endif
+
 # Tasks
 default: run
 
@@ -18,5 +29,5 @@ docs:
 	@swag init -g cmd/main.go
 
 clean:
-	@rm -rf $(APP_NAME)
-	@rm -rf ./docs
+	@$(RM) "$(APP_NAME)$(APP_EXT)"
+	@if exist docs rmdir /S /Q docs
