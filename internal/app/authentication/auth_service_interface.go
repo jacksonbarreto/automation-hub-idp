@@ -13,5 +13,5 @@ type IService interface {
 	IsUserAuthenticated(accessToken string) (bool, error)
 	RequestPasswordReset(email string) (string, time.Time, error)
 	ConfirmPasswordReset(token, newPassword string) error
-	ChangePassword(email string, newPassword string) error
+	ChangePassword(accessToken string, newPassword string) error
 }

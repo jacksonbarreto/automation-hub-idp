@@ -393,8 +393,23 @@ func (a *service) ConfirmPasswordReset(token, newPassword string) error {
 	return nil
 }
 
-func (a *service) ChangePassword(email string, newPassword string) error {
-	user, err := a.userService.GetUserByEmail(email)
+func (a *service) ChangePassword(accessToken string, newPassword string) error {
+	_, claims, err := a.parseAndValidateToken(accessToken)
+	if err != nil {
+		a.logger.Error("Error parsing accessToken: %v", err)
+		return errors.New("invalid accessToken")
+	}
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		a.logger.Warn("User ID not found in the accessToken")
+		return errors.New("invalid accessToken")
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		a.logger.Error("Error parsing userID: %v", err)
+		return errors.New("invalid user ID format")
+	}
+	user, err := a.userService.GetUserByID(userID)
 	if err != nil {
 		a.logger.Error("Error fetching user by email: %v", err)
 		return errors.New("invalid email")
@@ -422,7 +437,7 @@ func (a *service) ChangePassword(email string, newPassword string) error {
 		return errors.New("failed to update user")
 	}
 
-	a.logger.Info("Successfully changed password for user: %s", email)
+	a.logger.Info("Successfully changed password for user: %s", userIDStr)
 	return nil
 }
 
