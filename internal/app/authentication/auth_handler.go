@@ -1,9 +1,11 @@
 package authentication
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"idp-automations-hub/internal/app/dto"
 	"net/http"
+	"strings"
 )
 
 type Handler struct {
@@ -41,14 +43,22 @@ func (h *Handler) Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	response := dto.TokenDto{
+		AccessToken:  tokenDetails.AccessToken,
+		RefreshToken: tokenDetails.RefreshToken,
+	}
 
-	c.JSON(http.StatusOK, tokenDetails)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *Handler) Logout(c *gin.Context) {
-	accessToken := c.GetHeader("Authorization")
+	accessToken, err := ExtractTokenFromHeader(c.GetHeader("Authorization"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	err := h.authService.Logout(accessToken)
+	err = h.authService.Logout(accessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -58,21 +68,33 @@ func (h *Handler) Logout(c *gin.Context) {
 }
 
 func (h *Handler) RefreshToken(c *gin.Context) {
-	refreshToken := c.PostForm("refreshToken")
+	var tokenDto dto.TokenDto
 
-	tokenDetails, err := h.authService.RefreshToken(refreshToken)
+	if err := c.ShouldBindJSON(&tokenDto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	tokenDetails, err := h.authService.RefreshToken(tokenDto.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	response := dto.TokenDto{
+		AccessToken: tokenDetails.AccessToken,
+	}
 
-	c.JSON(http.StatusOK, tokenDetails)
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *Handler) IsUserAuthenticated(c *gin.Context) {
-	accessToken := c.GetHeader("Authorization")
+	var tokenDto dto.TokenDto
+	if err := c.ShouldBindJSON(&tokenDto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
 
-	isAuthenticated, err := h.authService.IsUserAuthenticated(accessToken)
+	isAuthenticated, err := h.authService.IsUserAuthenticated(tokenDto.AccessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -88,20 +110,19 @@ func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 func (h *Handler) RequestPasswordReset(c *gin.Context) {
 	email := c.PostForm("email")
 
-	resetToken, resetTokenExpires, err := h.authService.RequestPasswordReset(email)
+	resetToken, _, err := h.authService.RequestPasswordReset(email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"resetToken":        resetToken,
-		"resetTokenExpires": resetTokenExpires,
+		"resetToken": resetToken,
 	})
 }
 
 func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
-	token := c.PostForm("token")
+	token := c.Query("reset-token")
 	newPassword := c.PostForm("newPassword")
 
 	err := h.authService.ConfirmPasswordReset(token, newPassword)
@@ -114,14 +135,28 @@ func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 }
 
 func (h *Handler) ChangePassword(c *gin.Context) {
-	email := c.PostForm("email")
+	accessToken, err := ExtractTokenFromHeader(c.GetHeader("Authorization"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	newPassword := c.PostForm("newPassword")
 
-	err := h.authService.ChangePassword(email, newPassword)
+	err = h.authService.ChangePassword(accessToken, newPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func ExtractTokenFromHeader(header string) (string, error) {
+	splitted := strings.Split(header, " ")
+	if len(splitted) != 2 {
+		return "", errors.New("invalid or malformed auth token")
+	}
+
+	return splitted[1], nil
 }
