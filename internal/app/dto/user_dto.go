@@ -5,7 +5,7 @@ import (
 )
 
 type UserDTO struct {
-	ID       uuid.UUID `json:"id"`
+	ID       uuid.UUID `json:"id,omitempty"`
 	Email    string    `json:"email"`
-	Password string    `json:"password"`
+	Password string    `json:"password,omitempty"`
 }
