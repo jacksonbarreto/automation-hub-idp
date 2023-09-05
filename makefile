@@ -17,7 +17,7 @@ endif
 default: run
 
 run:
-	@go run ./make cmd/main.go
+	@go run ./cmd/main.go
 
 build:
 	@go build -o $(APP_NAME) ./cmd/main.go
