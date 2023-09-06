@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	userDb     string = "USER_DB"
-	passwordDb string = "PASSWORD_DB"
+	userDb     string = "DB_USER"
+	passwordDb string = "DB_PASSWORD"
 	dbName     string = "DB_NAME"
 	dbHost     string = "DB_HOST"
 	dbPort     string = "DB_PORT"
