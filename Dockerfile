@@ -11,7 +11,7 @@ COPY . .
 WORKDIR /app/cmd
 
 # Build the Go app
-RUN CGO_ENABLED=0 GOOS=linux go build -o app .
+RUN CGO_ENABLED=1 GOOS=linux go build -o idp ./main.go
 
 # Stage 2: Build the minimal docker image
 FROM scratch
@@ -19,7 +19,7 @@ FROM scratch
 WORKDIR /root/
 
 # Copy the pre-built binary from the previous stage
-COPY --from=builder /app/cmd/app .
+COPY --from=builder /app/cmd/idp /root/
 
 # Command to run
-CMD ["./app"]
+CMD ["./idp"]
