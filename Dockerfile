@@ -14,7 +14,7 @@ WORKDIR /app/cmd
 RUN CGO_ENABLED=1 GOOS=linux go build -o idp ./main.go
 
 # Stage 2: Build the minimal docker image
-FROM scratch
+FROM alpine:latest
 
 WORKDIR /root/
 
