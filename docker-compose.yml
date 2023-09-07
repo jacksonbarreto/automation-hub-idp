@@ -1,9 +1,7 @@
 version: '3'
 services:
   idp:
-    build:
-      context: ./
-      dockerfile: Dockerfile
+    image: jacksonbarreto/idp-automations-hub:latest
     env_file:
         - .env
     ports:
