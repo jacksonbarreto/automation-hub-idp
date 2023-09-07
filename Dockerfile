@@ -22,4 +22,4 @@ WORKDIR /root/
 COPY --from=builder /app/cmd/idp /root/
 
 # Command to run
-CMD ["./idp"]
+CMD ["/root/idp"]
