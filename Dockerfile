@@ -17,7 +17,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o idp ./main.go
 RUN ls -al
 
 # Stage 2: Build the minimal docker image
-FROM debian:bullseye-slim
+FROM ubuntu:latest
 
 WORKDIR /root/
 
