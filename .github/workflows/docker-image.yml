@@ -39,6 +39,5 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        TIMESTAMP=$(date +%s)
-        docker build . --file Dockerfile --tag jacksonbarreto/idp-automations-hub:$TIMESTAMP
-        docker push jacksonbarreto/idp-automations-hub:$TIMESTAMP
+        docker build . --file Dockerfile --tag jacksonbarreto/idp-automations-hub:latest
+        docker push jacksonbarreto/idp-automations-hub:latest
