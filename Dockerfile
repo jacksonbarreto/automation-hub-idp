@@ -13,6 +13,9 @@ WORKDIR /app/cmd
 # Build the Go app
 RUN CGO_ENABLED=1 GOOS=linux go build -o idp ./main.go
 
+# List the files (for debugging purposes)
+RUN ls -al
+
 # Stage 2: Build the minimal docker image
 FROM alpine:latest
 
@@ -20,6 +23,9 @@ WORKDIR /root/
 
 # Copy the pre-built binary from the previous stage
 COPY --from=builder /app/cmd/idp /root/
+
+# Give execute permission
+RUN chmod +x /root/idp
 
 # Command to run
 CMD ["/root/idp"]
