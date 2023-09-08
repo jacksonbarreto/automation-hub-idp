@@ -1,4 +1,4 @@
-.PHONY: default run build test doc clean
+.PHONY: default run build test doc clean update-docs
 # Variables
 APP_NAME = "IDP"
 
@@ -31,3 +31,5 @@ docs:
 clean:
 	@$(RM) "$(APP_NAME)$(APP_EXT)"
 	@if exist docs rmdir /S /Q docs
+
+update-docs: clean docs
