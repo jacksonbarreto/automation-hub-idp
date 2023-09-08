@@ -8,7 +8,7 @@ import (
 
 func NewKafkaProducer(brokers []string, client string) (*kafka.Producer, error) {
 	var brokersStr string
-	for _, broker := range config.KafkaConfig.BrokersAddr {
+	for _, broker := range brokers {
 		brokersStr += broker + ","
 	}
 	producerConfig := &kafka.ConfigMap{
