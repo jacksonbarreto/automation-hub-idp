@@ -25,7 +25,7 @@ WORKDIR /root/
 COPY --from=builder /app/cmd/idp /root/
 
 # Give execute permission
-RUN chmod +x /root/idp
+RUN apt-get update && apt-get install -y curl dnsutils iputils-ping && chmod +x /root/idp
 
 # Command to run
 CMD ["/root/idp"]
