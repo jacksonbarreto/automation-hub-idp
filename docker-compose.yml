@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 services:
   idp:
     image: jacksonbarreto/idp-automations-hub:latest
@@ -53,4 +53,4 @@ networks:
   idp_network:
     driver: bridge
   service-hub:
-    name: service-hub
+    driver: bridge
