@@ -4,10 +4,8 @@ services:
     image: jacksonbarreto/idp-automations-hub:latest
     restart: always
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
     env_file:
       - .env
     ports:
