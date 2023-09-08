@@ -7,8 +7,12 @@ import (
 )
 
 func NewKafkaProducer(brokers []string, client string) (*kafka.Producer, error) {
+	var brokersStr string
+	for _, broker := range config.KafkaConfig.BrokersAddr {
+		brokersStr += broker + ","
+	}
 	producerConfig := &kafka.ConfigMap{
-		"bootstrap.servers": brokers,
+		"bootstrap.servers": brokersStr,
 		"client.id":         client,
 		"acks":              "all",
 	}
@@ -22,5 +26,6 @@ func NewKafkaProducer(brokers []string, client string) (*kafka.Producer, error) 
 }
 
 func GetDefaultKafkaProducer() (*kafka.Producer, error) {
+
 	return NewKafkaProducer(config.KafkaConfig.BrokersAddr, config.KafkaConfig.ClientID)
 }
