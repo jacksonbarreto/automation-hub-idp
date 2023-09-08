@@ -23,9 +23,9 @@ WORKDIR /root/
 
 # Copy the pre-built binary from the previous stage
 COPY --from=builder /app/cmd/idp /root/
+COPY --from=builder /app/docs /root/docs
 
-# Give execute permission
-RUN apt-get update && apt-get install -y curl dnsutils iputils-ping && chmod +x /root/idp
+
 
 # Command to run
 CMD ["/root/idp"]
