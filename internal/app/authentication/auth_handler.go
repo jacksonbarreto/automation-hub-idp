@@ -19,7 +19,6 @@ func NewHandler(authService IService) *Handler {
 }
 
 // Register
-// @BasePath /api/v1/auth
 // @Summary Register a new user
 // @Description Register a new user
 // @Tags Authentication
@@ -29,7 +28,7 @@ func NewHandler(authService IService) *Handler {
 // @Success 200 {object} dto.UserDTO
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /register [post]
+// @Router /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var userDTO dto.UserDTO
 	var errorResponse dto.ErrorResponse
@@ -52,7 +51,6 @@ func (h *Handler) Register(c *gin.Context) {
 }
 
 // Login
-// @BasePath /api/v1/auth
 // @Summary Login
 // @Description Login
 // @Tags Authentication
@@ -63,7 +61,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Success 200 {object} dto.TokenDto
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /login [post]
+// @Router /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var errorResponse dto.ErrorResponse
 	email := c.PostForm("email")
@@ -85,7 +83,6 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 // Logout
-// @BasePath /api/v1/auth
 // @Summary Logout
 // @Description Logout
 // @Tags Authentication
@@ -95,7 +92,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Success 200 {object} string
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /logout [get]
+// @Router /auth/logout [get]
 func (h *Handler) Logout(c *gin.Context) {
 	var errorResponse dto.ErrorResponse
 	accessToken, err := ExtractTokenFromHeader(c.GetHeader("Authorization"))
@@ -121,6 +118,17 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// RefreshToken
+// @Summary RefreshToken
+// @Description RefreshToken
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param token body dto.TokenDto true "refreshToken"
+// @Success 200 {object} string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /auth/refresh-token [post]
 func (h *Handler) RefreshToken(c *gin.Context) {
 	var tokenDto dto.TokenDto
 	var errorResponse dto.ErrorResponse
@@ -147,17 +155,16 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 }
 
 // IsUserAuthenticated
-// @BasePath /api/v1/auth
 // @Summary IsUserAuthenticated
 // @Description IsUserAuthenticated
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param token body string true "accesstoken"
+// @Param token body dto.TokenDto true "accesstoken"
 // @Success 200 {object} dto.AuthenticateStatusResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /is-user-authenticated [post]
+// @Router /auth/is-user-authenticated [post]
 func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 	var tokenDto dto.TokenDto
 	var errorResponse dto.ErrorResponse
@@ -189,7 +196,6 @@ func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 }
 
 // RequestPasswordReset
-// @BasePath /api/v1/auth
 // @Summary RequestPasswordReset
 // @Description RequestPasswordReset
 // @Tags Authentication
@@ -199,7 +205,7 @@ func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 // @Success 200 {object} string
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /request-password-reset [post]
+// @Router /auth/request-password-reset [post]
 func (h *Handler) RequestPasswordReset(c *gin.Context) {
 	var errorResponse dto.ErrorResponse
 	email := c.PostForm("email")
@@ -219,7 +225,6 @@ func (h *Handler) RequestPasswordReset(c *gin.Context) {
 }
 
 // ConfirmPasswordReset
-// @BasePath /api/v1/auth
 // @Summary ConfirmPasswordReset
 // @Description ConfirmPasswordReset
 // @Tags Authentication
@@ -230,7 +235,7 @@ func (h *Handler) RequestPasswordReset(c *gin.Context) {
 // @Success 200 {object} string
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /confirm-password-reset [post]
+// @Router /auth/confirm-password-reset [post]
 func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 	var errorResponse dto.ErrorResponse
 	token := c.Query("reset-token")
@@ -251,7 +256,6 @@ func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 }
 
 // ChangePassword
-// @BasePath /api/v1/auth
 // @Summary ChangePassword
 // @Description ChangePassword
 // @Tags Authentication
@@ -262,7 +266,7 @@ func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /change-password [post]
+// @Router /auth/change-password [post]
 func (h *Handler) ChangePassword(c *gin.Context) {
 	var errorResponse dto.ErrorResponse
 	accessToken, err := ExtractTokenFromHeader(c.GetHeader("Authorization"))
