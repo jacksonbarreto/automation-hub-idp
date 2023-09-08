@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/change-password": {
+        "/auth/change-password": {
             "post": {
                 "description": "ChangePassword",
                 "consumes": [
@@ -66,7 +66,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/confirm-password-reset": {
+        "/auth/confirm-password-reset": {
             "post": {
                 "description": "ConfirmPasswordReset",
                 "consumes": [
@@ -117,7 +117,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/is-user-authenticated": {
+        "/auth/is-user-authenticated": {
             "post": {
                 "description": "IsUserAuthenticated",
                 "consumes": [
@@ -137,7 +137,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/dto.TokenDto"
                         }
                     }
                 ],
@@ -163,7 +163,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/login": {
+        "/auth/login": {
             "post": {
                 "description": "Login",
                 "consumes": [
@@ -214,7 +214,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/logout": {
+        "/auth/logout": {
             "get": {
                 "description": "Logout",
                 "consumes": [
@@ -258,7 +258,53 @@ const docTemplate = `{
                 }
             }
         },
-        "/register": {
+        "/auth/refresh-token": {
+            "post": {
+                "description": "RefreshToken",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "RefreshToken",
+                "parameters": [
+                    {
+                        "description": "refreshToken",
+                        "name": "token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TokenDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
             "post": {
                 "description": "Register a new user",
                 "consumes": [
@@ -304,7 +350,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/request-password-reset": {
+        "/auth/request-password-reset": {
             "post": {
                 "description": "RequestPasswordReset",
                 "consumes": [

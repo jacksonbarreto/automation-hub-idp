@@ -1,4 +1,4 @@
-.PHONY: default run build test doc clean update-docs
+.PHONY: default run build test doc clean update-docs hard-clean
 # Variables
 APP_NAME = "IDP"
 
@@ -33,3 +33,6 @@ clean:
 	@if exist docs rmdir /S /Q docs
 
 update-docs: clean docs
+
+hard-clean: clean
+	@if exist db_data rmdir /S /Q db_data

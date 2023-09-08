@@ -39,7 +39,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /change-password:
+  /auth/change-password:
     post:
       consumes:
       - application/json
@@ -73,7 +73,7 @@ paths:
       summary: ChangePassword
       tags:
       - Authentication
-  /confirm-password-reset:
+  /auth/confirm-password-reset:
     post:
       consumes:
       - application/json
@@ -107,7 +107,7 @@ paths:
       summary: ConfirmPasswordReset
       tags:
       - Authentication
-  /is-user-authenticated:
+  /auth/is-user-authenticated:
     post:
       consumes:
       - application/json
@@ -118,7 +118,7 @@ paths:
         name: token
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/dto.TokenDto'
       produces:
       - application/json
       responses:
@@ -137,7 +137,7 @@ paths:
       summary: IsUserAuthenticated
       tags:
       - Authentication
-  /login:
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -171,7 +171,7 @@ paths:
       summary: Login
       tags:
       - Authentication
-  /logout:
+  /auth/logout:
     get:
       consumes:
       - application/json
@@ -200,7 +200,37 @@ paths:
       summary: Logout
       tags:
       - Authentication
-  /register:
+  /auth/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: RefreshToken
+      parameters:
+      - description: refreshToken
+        in: body
+        name: token
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TokenDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: RefreshToken
+      tags:
+      - Authentication
+  /auth/register:
     post:
       consumes:
       - application/json
@@ -230,7 +260,7 @@ paths:
       summary: Register a new user
       tags:
       - Authentication
-  /request-password-reset:
+  /auth/request-password-reset:
     post:
       consumes:
       - application/json
