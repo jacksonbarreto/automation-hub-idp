@@ -53,4 +53,4 @@ networks:
   idp_network:
     driver: bridge
   service-hub:
-    driver: bridge
+    external: true
