@@ -28,7 +28,7 @@ services:
       DB_HOST: ${DB_HOST}
     volumes:
       - ./db_data:/var/lib/postgresql/data
-      #- ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./internal/infra/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "${DB_PORT}:${DB_PORT}"
     networks:
