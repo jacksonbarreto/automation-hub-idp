@@ -18,7 +18,8 @@ func SeedDatabase(db *gorm.DB) error {
 	defaultPassword := "1234"
 	defaultEmail := "admin@admin.nl"
 	var user models.User
-	if err := db.Where("Email = ?", "admin@example.com").First(&user).Error; err != nil {
+	err := db.Where("Email = ?", defaultEmail).First(&user).Error
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			hashedPassword, err := hasher.Hash(defaultPassword)
 			if err != nil {
