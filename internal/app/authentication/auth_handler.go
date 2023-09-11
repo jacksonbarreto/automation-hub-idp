@@ -54,7 +54,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Summary Login
 // @Description Login
 // @Tags Authentication
-// @Accept json
+// @Accept application/x-www-form-urlencoded
 // @Produce json
 // @Param email formData string true "Email"
 // @Param password formData string true "Password"
@@ -199,7 +199,7 @@ func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 // @Summary RequestPasswordReset
 // @Description RequestPasswordReset
 // @Tags Authentication
-// @Accept json
+// @Accept application/x-www-form-urlencoded
 // @Produce json
 // @Param email formData string true "Email"
 // @Success 200 {object} string
@@ -228,7 +228,7 @@ func (h *Handler) RequestPasswordReset(c *gin.Context) {
 // @Summary ConfirmPasswordReset
 // @Description ConfirmPasswordReset
 // @Tags Authentication
-// @Accept json
+// @Accept application/x-www-form-urlencoded
 // @Produce json
 // @Param reset-token path string true "reset-token"
 // @Param newPassword formData string true "newPassword"
@@ -259,7 +259,7 @@ func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 // @Summary ChangePassword
 // @Description ChangePassword
 // @Tags Authentication
-// @Accept json
+// @Accept application/x-www-form-urlencoded
 // @Produce json
 // @Param Authorization header string true "Authorization"
 // @Param newPassword formData string true "newPassword"
