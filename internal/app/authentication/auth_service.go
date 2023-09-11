@@ -204,11 +204,12 @@ func (a *service) Logout(accessToken string) error {
 	}
 
 	// Calculates the expiration time of the tokens to define the time they remain on the block list.
-	refreshExp, ok := claims["refresh_exp"].(int64)
+	refreshExpFloat, ok := claims["refresh_exp"].(float64)
 	if !ok {
 		a.logger.Warn("Refresh expiration time not found in the token for user: %s", userID)
 		return errors.New("refresh expiration time not found in the token")
 	}
+	refreshExp := int64(refreshExpFloat)
 	rtDuration := time.Until(time.Unix(refreshExp, 0))
 
 	atExpires, ok := claims["exp"].(int64)
