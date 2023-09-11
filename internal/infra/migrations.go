@@ -26,8 +26,9 @@ func SeedDatabase(db *gorm.DB) error {
 				return err
 			}
 			adminUser := models.User{
-				Email:    defaultEmail,
-				Password: hashedPassword,
+				Email:       defaultEmail,
+				Password:    hashedPassword,
+				FirstAccess: false,
 			}
 			if err := db.Create(&adminUser).Error; err != nil {
 				return err
