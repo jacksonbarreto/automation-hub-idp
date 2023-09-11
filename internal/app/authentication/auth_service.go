@@ -428,7 +428,7 @@ func (a *service) ChangePassword(accessToken string, newPassword string) error {
 	user.ResetPasswordToken = ""
 	user.ResetTokenExpires = nil
 
-	updateErr := a.userService.UpdatePassword(user.ID, newPassword)
+	updateErr := a.userService.UpdatePassword(user.ID, hashedPassword)
 	if updateErr != nil {
 		a.logger.Error("Error updating user password: %v", updateErr)
 		return errors.New("failed to update password")
