@@ -42,7 +42,7 @@ paths:
   /auth/change-password:
     post:
       consumes:
-      - application/json
+      - application/x-www-form-urlencoded
       description: ChangePassword
       parameters:
       - description: Authorization
@@ -76,7 +76,7 @@ paths:
   /auth/confirm-password-reset:
     post:
       consumes:
-      - application/json
+      - application/x-www-form-urlencoded
       description: ConfirmPasswordReset
       parameters:
       - description: reset-token
@@ -140,7 +140,7 @@ paths:
   /auth/login:
     post:
       consumes:
-      - application/json
+      - application/x-www-form-urlencoded
       description: Login
       parameters:
       - description: Email
@@ -263,7 +263,7 @@ paths:
   /auth/request-password-reset:
     post:
       consumes:
-      - application/json
+      - application/x-www-form-urlencoded
       description: RequestPasswordReset
       parameters:
       - description: Email

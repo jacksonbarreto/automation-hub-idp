@@ -19,7 +19,7 @@ const docTemplate = `{
             "post": {
                 "description": "ChangePassword",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
@@ -70,7 +70,7 @@ const docTemplate = `{
             "post": {
                 "description": "ConfirmPasswordReset",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
@@ -167,7 +167,7 @@ const docTemplate = `{
             "post": {
                 "description": "Login",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
@@ -354,7 +354,7 @@ const docTemplate = `{
             "post": {
                 "description": "RequestPasswordReset",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"

@@ -8,7 +8,7 @@
             "post": {
                 "description": "ChangePassword",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
@@ -59,7 +59,7 @@
             "post": {
                 "description": "ConfirmPasswordReset",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
@@ -156,7 +156,7 @@
             "post": {
                 "description": "Login",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
@@ -343,7 +343,7 @@
             "post": {
                 "description": "RequestPasswordReset",
                 "consumes": [
-                    "application/json"
+                    "application/x-www-form-urlencoded"
                 ],
                 "produces": [
                     "application/json"
