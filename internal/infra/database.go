@@ -1,10 +1,10 @@
 package infra
 
 import (
+	"automation-hub-idp/internal/app/config"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"idp-automations-hub/internal/app/config"
 )
 
 func NewPostgresDatabase(user, password, dbName, dbHost string, dbPort int) (*gorm.DB, error) {
@@ -25,5 +25,14 @@ func GetDefaultDB() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := RunMigrations(db); err != nil {
+		return nil, err
+	}
+
+	if err := SeedDatabase(db); err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }
