@@ -212,11 +212,12 @@ func (a *service) Logout(accessToken string) error {
 	refreshExp := int64(refreshExpFloat)
 	rtDuration := time.Until(time.Unix(refreshExp, 0))
 
-	atExpires, ok := claims["exp"].(int64)
+	atExpiresFloat, ok := claims["exp"].(float64)
 	if !ok {
 		a.logger.Warn("Expiration time not found in the token for user: %s", userID)
 		return errors.New("expiration time not found in the token")
 	}
+	atExpires := int64(atExpiresFloat)
 	atDuration := time.Until(time.Unix(atExpires, 0))
 
 	// Add the access token and refresh token UUIDs to the block list
