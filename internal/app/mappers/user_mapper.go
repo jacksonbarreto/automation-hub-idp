@@ -1,9 +1,9 @@
 package mappers
 
 import (
+	"automation-hub-idp/internal/app/dto"
+	"automation-hub-idp/internal/app/models"
 	"github.com/mitchellh/mapstructure"
-	"idp-automations-hub/internal/app/dto"
-	"idp-automations-hub/internal/app/models"
 )
 
 func MapUserToUserResponse(user *models.User) (*dto.UserDTO, error) {

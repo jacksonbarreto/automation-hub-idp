@@ -1,9 +1,9 @@
 package authentication
 
 import (
+	"automation-hub-idp/internal/app/dto"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"idp-automations-hub/internal/app/dto"
 	"net/http"
 	"strings"
 )

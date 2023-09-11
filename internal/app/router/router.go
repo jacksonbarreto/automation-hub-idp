@@ -1,8 +1,8 @@
 package router
 
 import (
+	"automation-hub-idp/internal/app/config"
 	"github.com/gin-gonic/gin"
-	"idp-automations-hub/internal/app/config"
 )
 
 func Initialize() error {

@@ -1,12 +1,12 @@
 package services
 
 import (
+	"automation-hub-idp/internal/app/models"
+	"automation-hub-idp/internal/app/utils"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"idp-automations-hub/internal/app/models"
-	"idp-automations-hub/internal/app/utils"
 	"testing"
 )
 

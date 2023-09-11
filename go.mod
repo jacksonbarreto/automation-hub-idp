@@ -1,4 +1,4 @@
-module idp-automations-hub
+module automation-hub-idp
 
 go 1.21.0
 

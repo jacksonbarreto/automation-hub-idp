@@ -1,8 +1,8 @@
 package main
 
 import (
-	"idp-automations-hub/internal/app/config"
-	"idp-automations-hub/internal/app/router"
+	"automation-hub-idp/internal/app/config"
+	"automation-hub-idp/internal/app/router"
 )
 
 func main() {

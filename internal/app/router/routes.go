@@ -1,12 +1,12 @@
 package router
 
 import (
+	"automation-hub-idp/docs"
+	"automation-hub-idp/internal/app/authentication"
+	"automation-hub-idp/internal/app/config"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"idp-automations-hub/docs"
-	"idp-automations-hub/internal/app/authentication"
-	"idp-automations-hub/internal/app/config"
 )
 
 func initializeRoutes(router *gin.Engine) error {

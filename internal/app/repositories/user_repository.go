@@ -1,12 +1,12 @@
 package repositories
 
 import (
+	"automation-hub-idp/internal/app/models"
+	"automation-hub-idp/internal/app/repositories/irepository"
+	"automation-hub-idp/internal/app/utils"
 	"errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"idp-automations-hub/internal/app/models"
-	"idp-automations-hub/internal/app/repositories/irepository"
-	"idp-automations-hub/internal/app/utils"
 )
 
 type Logger interface {

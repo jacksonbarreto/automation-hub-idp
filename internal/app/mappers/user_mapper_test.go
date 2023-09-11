@@ -1,8 +1,8 @@
 package mappers
 
 import (
+	"automation-hub-idp/internal/app/models"
 	"github.com/stretchr/testify/assert"
-	"idp-automations-hub/internal/app/models"
 	"testing"
 )
 

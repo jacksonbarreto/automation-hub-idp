@@ -1,9 +1,9 @@
 package services
 
 import (
+	"automation-hub-idp/internal/infra"
 	"encoding/json"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
-	"idp-automations-hub/internal/infra"
 )
 
 type KafkaMessageSender struct {

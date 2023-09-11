@@ -1,9 +1,9 @@
 package iservice
 
 import (
+	"automation-hub-idp/internal/app/models"
+	"automation-hub-idp/internal/app/utils"
 	"github.com/google/uuid"
-	"idp-automations-hub/internal/app/models"
-	"idp-automations-hub/internal/app/utils"
 )
 
 type UserService interface {

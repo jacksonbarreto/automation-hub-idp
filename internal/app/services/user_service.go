@@ -1,12 +1,12 @@
 package services
 
 import (
+	"automation-hub-idp/internal/app/models"
+	"automation-hub-idp/internal/app/repositories/irepository"
+	"automation-hub-idp/internal/app/services/iservice"
+	"automation-hub-idp/internal/app/utils"
 	"errors"
 	"github.com/google/uuid"
-	"idp-automations-hub/internal/app/models"
-	"idp-automations-hub/internal/app/repositories/irepository"
-	"idp-automations-hub/internal/app/services/iservice"
-	"idp-automations-hub/internal/app/utils"
 )
 
 type userServiceImpl struct {

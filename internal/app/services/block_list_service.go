@@ -1,12 +1,12 @@
 package services
 
 import (
+	"automation-hub-idp/internal/app/config"
 	"context"
 	"github.com/go-redis/redis/v8"
-	"idp-automations-hub/internal/app/config"
 	"time"
 )
-import "idp-automations-hub/internal/app/services/iservice"
+import "automation-hub-idp/internal/app/services/iservice"
 
 type tokenBlockListServiceImpl struct {
 	client *redis.Client

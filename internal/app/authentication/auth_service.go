@@ -1,18 +1,18 @@
 package authentication
 
 import (
+	"automation-hub-idp/internal/app/config"
+	"automation-hub-idp/internal/app/dto"
+	"automation-hub-idp/internal/app/models"
+	"automation-hub-idp/internal/app/repositories"
+	"automation-hub-idp/internal/app/services"
+	"automation-hub-idp/internal/app/services/iservice"
+	"automation-hub-idp/internal/app/utils"
+	"automation-hub-idp/internal/infra"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
-	"idp-automations-hub/internal/app/config"
-	"idp-automations-hub/internal/app/dto"
-	"idp-automations-hub/internal/app/models"
-	"idp-automations-hub/internal/app/repositories"
-	"idp-automations-hub/internal/app/services"
-	"idp-automations-hub/internal/app/services/iservice"
-	"idp-automations-hub/internal/app/utils"
-	"idp-automations-hub/internal/infra"
 	"math"
 	"time"
 )

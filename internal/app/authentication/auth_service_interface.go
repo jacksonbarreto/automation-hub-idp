@@ -1,7 +1,7 @@
 package authentication
 
 import (
-	"idp-automations-hub/internal/app/dto"
+	"automation-hub-idp/internal/app/dto"
 	"time"
 )
 

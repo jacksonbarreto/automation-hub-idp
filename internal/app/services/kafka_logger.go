@@ -1,9 +1,9 @@
 package services
 
 import (
+	"automation-hub-idp/internal/app/services/iservice"
 	"fmt"
 	"github.com/IBM/sarama"
-	"idp-automations-hub/internal/app/services/iservice"
 	"log"
 )
 

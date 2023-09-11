@@ -1,9 +1,9 @@
 package infra
 
 import (
+	"automation-hub-idp/internal/app/config"
 	"fmt"
 	"gopkg.in/confluentinc/confluent-kafka-go.v1/kafka"
-	"idp-automations-hub/internal/app/config"
 )
 
 func NewKafkaProducer(brokers []string, client string) (*kafka.Producer, error) {
