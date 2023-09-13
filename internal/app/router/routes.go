@@ -35,12 +35,11 @@ func initializeAuthRoutes(apiVersion *gin.RouterGroup) error {
 		authHandler := authentication.NewHandler(authService)
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
-		auth.GET("/logout", authHandler.Logout)
-		auth.POST("/refresh-token", authHandler.RefreshToken)
+		auth.GET("/logout", authentication.AuthMiddleware, authHandler.Logout)
 		auth.POST("/request-password-reset", authHandler.RequestPasswordReset)
 		auth.POST("/confirm-password-reset/:reset-token", authHandler.ConfirmPasswordReset)
-		auth.POST("/change-password", authHandler.ChangePassword)
-		auth.POST("/is-user-authenticated", authHandler.IsUserAuthenticated)
+		auth.POST("/change-password", authentication.AuthMiddleware, authHandler.ChangePassword)
+		auth.GET("/is-user-authenticated", authHandler.IsUserAuthenticated)
 	}
 
 	return nil

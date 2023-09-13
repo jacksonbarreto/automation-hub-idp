@@ -105,7 +105,6 @@ func (h *Handler) Login(c *gin.Context) {
 // @Description Logout
 // @Tags Authentication
 // @Accept json
-// @Produce json
 // @Param Authorization header string true "Authorization"
 // @Success 200 {object} string
 // @Failure 400 {object} dto.ErrorResponse
@@ -136,56 +135,6 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// RefreshToken
-// @Summary RefreshToken
-// @Description RefreshToken
-// @Tags Authentication
-// @Success 200 {object} string
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /auth/refresh-token [post]
-func (h *Handler) RefreshToken(c *gin.Context) {
-	accessToken, err := c.Cookie("access_token")
-	if err != nil {
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-
-	isAuthenticated, err := h.authService.IsUserAuthenticated(accessToken)
-	if err != nil || !isAuthenticated {
-		// If the access token is not valid, try to refresh it
-		refreshToken, err := c.Cookie("refresh_token")
-		if err != nil {
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-
-		newAccessToken, err := h.authService.RefreshToken(refreshToken)
-		if err != nil {
-			c.Status(http.StatusUnauthorized)
-			return
-		}
-
-		atExpiresTime := time.Unix(newAccessToken.AtExpires, 0)
-
-		// Set the new access token as a cookie
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "access_token",
-			Value:    newAccessToken.AccessToken,
-			Expires:  atExpiresTime,
-			HttpOnly: true,
-			Secure:   true, // Set this to true if you're using HTTPS
-			SameSite: http.SameSiteStrictMode,
-			Path:     "/",
-		})
-
-		c.Status(http.StatusOK)
-		return
-	}
-
-	c.Status(http.StatusOK)
-}
-
 // IsUserAuthenticated
 // @Summary IsUserAuthenticated
 // @Description IsUserAuthenticated
@@ -193,7 +142,7 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 // @Success 200 "OK"
 // @Failure 400 "Unauthorized"
 // @Failure 500 "Internal Server Error"
-// @Router /auth/is-user-authenticated [post]
+// @Router /auth/is-user-authenticated [get]
 func (h *Handler) IsUserAuthenticated(c *gin.Context) {
 	accessToken, err := c.Cookie("access_token")
 	if err != nil {
