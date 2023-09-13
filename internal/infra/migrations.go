@@ -3,6 +3,7 @@ package infra
 import (
 	"automation-hub-idp/internal/app/models"
 	"automation-hub-idp/internal/app/utils"
+	"errors"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +21,7 @@ func SeedDatabase(db *gorm.DB) error {
 	var user models.User
 	err := db.Where("Email = ?", defaultEmail).First(&user).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			hashedPassword, err := hasher.Hash(defaultPassword)
 			if err != nil {
 				return err
