@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Handler struct {
@@ -55,31 +56,48 @@ func (h *Handler) Register(c *gin.Context) {
 // @Description Login
 // @Tags Authentication
 // @Accept application/x-www-form-urlencoded
-// @Produce json
 // @Param email formData string true "Email"
 // @Param password formData string true "Password"
-// @Success 200 {object} dto.TokenDto
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
+// @Success 200 "Successfully logged in"
+// @Failure 400 "Unauthorized"
+// @Failure 500 "Internal Server Error"
 // @Router /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
-	var errorResponse dto.ErrorResponse
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
 	tokenDetails, err := h.authService.Login(email, password)
 	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusUnauthorized
-		c.JSON(http.StatusUnauthorized, errorResponse)
+		c.Status(http.StatusUnauthorized)
 		return
 	}
-	response := dto.TokenDto{
-		AccessToken:  tokenDetails.AccessToken,
-		RefreshToken: tokenDetails.RefreshToken,
-	}
 
-	c.JSON(http.StatusOK, response)
+	atExpiresTime := time.Unix(tokenDetails.AtExpires, 0)
+	rtExpiresTime := time.Unix(tokenDetails.RtExpires, 0)
+
+	// Set the access token as a cookie
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "access_token",
+		Value:    tokenDetails.AccessToken,
+		Expires:  atExpiresTime,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	})
+
+	// Set the refresh token as a cookie
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    tokenDetails.RefreshToken,
+		Expires:  rtExpiresTime,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	})
+
+	c.Status(http.StatusOK)
 }
 
 // Logout
@@ -122,77 +140,100 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Summary RefreshToken
 // @Description RefreshToken
 // @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param token body dto.TokenDto true "refreshToken"
 // @Success 200 {object} string
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /auth/refresh-token [post]
 func (h *Handler) RefreshToken(c *gin.Context) {
-	var tokenDto dto.TokenDto
-	var errorResponse dto.ErrorResponse
-
-	if err := c.ShouldBindJSON(&tokenDto); err != nil {
-		errorResponse.Message = "Invalid request body"
-		errorResponse.ErrorCode = http.StatusBadRequest
-		c.JSON(http.StatusBadRequest, errorResponse)
-		return
-	}
-
-	tokenDetails, err := h.authService.RefreshToken(tokenDto.RefreshToken)
+	accessToken, err := c.Cookie("access_token")
 	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusUnauthorized
-		c.JSON(http.StatusUnauthorized, errorResponse)
+		c.Status(http.StatusUnauthorized)
 		return
 	}
-	response := dto.TokenDto{
-		AccessToken: tokenDetails.AccessToken,
+
+	isAuthenticated, err := h.authService.IsUserAuthenticated(accessToken)
+	if err != nil || !isAuthenticated {
+		// If the access token is not valid, try to refresh it
+		refreshToken, err := c.Cookie("refresh_token")
+		if err != nil {
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		newAccessToken, err := h.authService.RefreshToken(refreshToken)
+		if err != nil {
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		atExpiresTime := time.Unix(newAccessToken.AtExpires, 0)
+
+		// Set the new access token as a cookie
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "access_token",
+			Value:    newAccessToken.AccessToken,
+			Expires:  atExpiresTime,
+			HttpOnly: true,
+			Secure:   true, // Set this to true if you're using HTTPS
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+		})
+
+		c.Status(http.StatusOK)
+		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.Status(http.StatusOK)
 }
 
 // IsUserAuthenticated
 // @Summary IsUserAuthenticated
 // @Description IsUserAuthenticated
 // @Tags Authentication
-// @Accept json
-// @Produce json
-// @Param token body dto.TokenDto true "accesstoken"
-// @Success 200 {object} dto.AuthenticateStatusResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
+// @Success 200 "OK"
+// @Failure 400 "Unauthorized"
+// @Failure 500 "Internal Server Error"
 // @Router /auth/is-user-authenticated [post]
 func (h *Handler) IsUserAuthenticated(c *gin.Context) {
-	var tokenDto dto.TokenDto
-	var errorResponse dto.ErrorResponse
-	if err := c.ShouldBindJSON(&tokenDto); err != nil {
-		errorResponse.Message = "Invalid request body"
-		errorResponse.ErrorCode = http.StatusBadRequest
-		c.JSON(http.StatusBadRequest, errorResponse)
-		return
-	}
-
-	isAuthenticated, err := h.authService.IsUserAuthenticated(tokenDto.AccessToken)
+	accessToken, err := c.Cookie("access_token")
 	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusInternalServerError
-		c.JSON(http.StatusInternalServerError, errorResponse)
+		c.Status(http.StatusUnauthorized)
 		return
 	}
-	authenticateStatusResponse := dto.AuthenticateStatusResponse{
-		IsAuthenticated: isAuthenticated,
+
+	isAuthenticated, err := h.authService.IsUserAuthenticated(accessToken)
+	if err != nil || !isAuthenticated {
+		// If the access token is not valid, try to refresh it
+		refreshToken, err := c.Cookie("refresh_token")
+		if err != nil {
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		newAccessToken, err := h.authService.RefreshToken(refreshToken)
+		if err != nil {
+			c.Status(http.StatusUnauthorized)
+			return
+		}
+
+		atExpiresTime := time.Unix(newAccessToken.AtExpires, 0)
+
+		// Set the new access token as a cookie
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "access_token",
+			Value:    newAccessToken.AccessToken,
+			Expires:  atExpiresTime,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+		})
+
+		c.Status(http.StatusOK)
+		return
 	}
 
-	if isAuthenticated {
-		authenticateStatusResponse.StatusCode = http.StatusOK
-		c.JSON(http.StatusOK, authenticateStatusResponse)
-	} else {
-		authenticateStatusResponse.StatusCode = http.StatusUnauthorized
-		c.JSON(http.StatusUnauthorized, authenticateStatusResponse)
-	}
+	c.Status(http.StatusOK)
 }
 
 // RequestPasswordReset
