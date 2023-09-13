@@ -2,10 +2,8 @@ package authentication
 
 import (
 	"automation-hub-idp/internal/app/dto"
-	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -104,35 +102,24 @@ func (h *Handler) Login(c *gin.Context) {
 // @Summary Logout
 // @Description Logout
 // @Tags Authentication
-// @Accept json
-// @Param Authorization header string true "Authorization"
-// @Success 200 {object} string
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
+// @Success 200 "OK"
+// @Failure 400 "Unauthorized"
+// @Failure 500 "Internal Server Error"
 // @Router /auth/logout [get]
 func (h *Handler) Logout(c *gin.Context) {
-	var errorResponse dto.ErrorResponse
-	accessToken, err := ExtractTokenFromHeader(c.GetHeader("Authorization"))
+	accessToken, err := c.Cookie("access_token")
 	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusBadRequest
-		c.JSON(http.StatusBadRequest, errorResponse)
+		c.Status(http.StatusUnauthorized)
 		return
 	}
 
 	err = h.authService.Logout(accessToken)
 	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusInternalServerError
-		c.JSON(http.StatusInternalServerError, errorResponse)
+		c.Status(http.StatusInternalServerError)
 		return
 	}
-	response := dto.SuccessResponse{
-		Message:    "Logged out successfully",
-		StatusCode: http.StatusOK,
-	}
 
-	c.JSON(http.StatusOK, response)
+	c.Status(http.StatusOK)
 }
 
 // IsUserAuthenticated
@@ -251,22 +238,18 @@ func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 // @Tags Authentication
 // @Accept application/x-www-form-urlencoded
 // @Produce json
-// @Param Authorization header string true "Authorization"
 // @Param newPassword formData string true "newPassword"
 // @Success 200 {object} dto.SuccessResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /auth/change-password [post]
 func (h *Handler) ChangePassword(c *gin.Context) {
-	var errorResponse dto.ErrorResponse
-	accessToken, err := ExtractTokenFromHeader(c.GetHeader("Authorization"))
+	accessToken, err := c.Cookie("access_token")
 	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusBadRequest
-		c.JSON(http.StatusBadRequest, errorResponse)
+		c.Status(http.StatusUnauthorized)
 		return
 	}
-
+	var errorResponse dto.ErrorResponse
 	newPassword := c.PostForm("newPassword")
 
 	err = h.authService.ChangePassword(accessToken, newPassword)
@@ -282,46 +265,4 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
-}
-
-func ExtractTokenFromHeader(header string) (string, error) {
-	splitted := strings.Split(header, " ")
-	if len(splitted) != 2 {
-		return "", errors.New("invalid or malformed auth token")
-	}
-
-	return splitted[1], nil
-}
-
-func (h *Handler) AuthMiddleware1(c *gin.Context) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		accessToken, _ := c.Cookie("access_token")
-		refreshToken, _ := c.Cookie("refresh_token")
-
-		if isValid, _ := h.authService.IsUserAuthenticated(accessToken); isValid {
-			c.Next()
-			return
-		}
-
-		newAccessToken, err := h.authService.RefreshToken(refreshToken)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Please login again"})
-			return
-		}
-
-		atExpiresTime := time.Unix(newAccessToken.AtExpires, 0)
-
-		// Set the new access token as a cookie
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "access_token",
-			Value:    newAccessToken.AccessToken,
-			Expires:  atExpiresTime,
-			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteStrictMode,
-			Path:     "/",
-		})
-
-		c.Next()
-	}
 }
