@@ -53,18 +53,21 @@ func (h *Handler) Register(c *gin.Context) {
 // @Summary Login
 // @Description Login
 // @Tags Authentication
-// @Accept application/x-www-form-urlencoded
-// @Param email formData string true "Email"
+// @Accept application/json
+// @Param body dto.UserLoginDTO
 // @Param password formData string true "Password"
 // @Success 200 "Successfully logged in"
 // @Failure 400 "Unauthorized"
 // @Failure 500 "Internal Server Error"
 // @Router /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
-	email := c.PostForm("email")
-	password := c.PostForm("password")
+	var userLoginDTO dto.UserLoginDTO
+	if err := c.ShouldBindJSON(&userLoginDTO); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	tokenDetails, err := h.authService.Login(email, password)
+	tokenDetails, err := h.authService.Login(userLoginDTO.Email, userLoginDTO.Password)
 	if err != nil {
 		c.Status(http.StatusUnauthorized)
 		return
