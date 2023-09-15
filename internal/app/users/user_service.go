@@ -1,10 +1,14 @@
 package users
 
 import (
+	"automation-hub-idp/internal/app/config"
 	"automation-hub-idp/internal/app/models"
+	"automation-hub-idp/internal/app/repositories"
 	"automation-hub-idp/internal/app/repositories/irepository"
+	"automation-hub-idp/internal/app/services"
 	"automation-hub-idp/internal/app/services/iservice"
 	"automation-hub-idp/internal/app/utils"
+	"automation-hub-idp/internal/infra"
 	"errors"
 	"github.com/google/uuid"
 )
@@ -19,6 +23,19 @@ func NewUserService(repo irepository.UserRepository, logger iservice.Logger) Use
 		userRepo: repo,
 		logger:   logger,
 	}
+}
+
+func GetDefaultUserService() (UserService, error) {
+	logger, err := services.NewKafkaLogger(config.KafkaConfig.BrokersAddr, config.KafkaConfig.LoggerTopic)
+	if err != nil {
+		return nil, err
+	}
+	database, err := infra.GetDefaultDB()
+	if err != nil {
+		return nil, err
+	}
+	userRepository := repositories.NewGormUserRepository(database, logger)
+	return NewUserService(userRepository, logger), nil
 }
 
 func (s *userServiceImpl) CreateUser(user models.User) (*models.User, error) {

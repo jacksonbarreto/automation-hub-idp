@@ -4,6 +4,7 @@ import (
 	"automation-hub-idp/docs"
 	"automation-hub-idp/internal/app/authentication"
 	"automation-hub-idp/internal/app/config"
+	"automation-hub-idp/internal/app/users"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -29,12 +30,18 @@ func initializeAuthRoutes(apiVersion *gin.RouterGroup) error {
 	if err != nil {
 		return err
 	}
+	authHandler := authentication.NewHandler(authService)
+	authMiddleware := authentication.AuthMiddleware(authHandler)
+
+	userService, err := users.GetDefaultUserService()
+	if err != nil {
+		return err
+	}
+	userHandler := users.NewHandler(userService, authService)
+
 	auth := apiVersion.Group("/auth")
 	{
 		// initialize auth routes
-		authHandler := authentication.NewHandler(authService)
-		authMiddleware := authentication.AuthMiddleware(authHandler)
-
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.GET("/logout", authMiddleware, authHandler.Logout)
@@ -44,5 +51,11 @@ func initializeAuthRoutes(apiVersion *gin.RouterGroup) error {
 		auth.GET("/is-user-authenticated", authHandler.IsUserAuthenticated)
 	}
 
+	user := apiVersion.Group("/user")
+	{
+		// initialize user routes
+		user.GET("/current", authMiddleware, userHandler.GetCurrentUser)
+		user.PATCH("/", authMiddleware, userHandler.Update)
+	}
 	return nil
 }

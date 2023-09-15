@@ -444,6 +444,25 @@ func (a *service) ChangePassword(accessToken string, newPassword string) error {
 	return nil
 }
 
+func (a *service) GetIdFromToken(accessToken string) (uuid.UUID, error) {
+	_, claims, err := a.parseAndValidateToken(accessToken)
+	if err != nil {
+		a.logger.Error("Error parsing accessToken: %v", err)
+		return uuid.UUID{}, errors.New("invalid accessToken")
+	}
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		a.logger.Warn("User ID not found in the accessToken")
+		return uuid.UUID{}, errors.New("invalid accessToken")
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		a.logger.Error("Error parsing userID: %v", err)
+		return uuid.UUID{}, errors.New("invalid user ID format")
+	}
+	return userID, nil
+}
+
 func (a *service) generateAccessToken(userID uuid.UUID, refreshUUID string, refreshExp int64) (string, int64, error) {
 	expires := time.Now().Add(time.Minute * config.AuthenticationConfig.AccessTokenDurationMinutes).Unix()
 
