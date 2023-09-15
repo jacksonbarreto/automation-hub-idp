@@ -1,4 +1,4 @@
-package user
+package users
 
 import (
 	"automation-hub-idp/internal/app/models"

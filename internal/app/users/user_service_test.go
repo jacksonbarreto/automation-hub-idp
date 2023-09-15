@@ -1,8 +1,7 @@
-package user
+package users
 
 import (
 	"automation-hub-idp/internal/app/models"
-	"automation-hub-idp/internal/app/services"
 	"automation-hub-idp/internal/app/utils"
 	"errors"
 	"github.com/google/uuid"
@@ -13,8 +12,8 @@ import (
 
 func TestCreateUser_Success(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
-	mockLogger := new(services.MockLogger)
+	mockRepo := new(MockUserRepository)
+	mockLogger := new(MockLogger)
 	email := "test@example.com"
 	user := models.User{Email: email, Password: "test123"}
 
@@ -38,8 +37,8 @@ func TestCreateUser_Success(t *testing.T) {
 
 func TestGetUserByID(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
-	mockLogger := new(services.MockLogger)
+	mockRepo := new(MockUserRepository)
+	mockLogger := new(MockLogger)
 	id := uuid.New()
 	user := models.User{ID: id, Email: "test@example.com"}
 
@@ -58,7 +57,7 @@ func TestGetUserByID(t *testing.T) {
 
 func TestGetAllUsers_WithDefaultPagination(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
+	mockRepo := new(MockUserRepository)
 	users := []*models.User{
 		{Email: "test1@example.com"},
 		{Email: "test2@example.com"},
@@ -80,7 +79,7 @@ func TestGetAllUsers_WithDefaultPagination(t *testing.T) {
 
 func TestUpdateUser_Success(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
+	mockRepo := new(MockUserRepository)
 	userID := uuid.New()
 	existingUser := &models.User{ID: userID, Email: "existing@example.com", Password: "hashedPassword"}
 	newUser := models.User{ID: userID, Email: "new@example.com", Password: "hashedPassword"}
@@ -105,7 +104,7 @@ func TestUpdateUser_Success(t *testing.T) {
 
 func TestUpdateUser_PasswordNotChanged(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
+	mockRepo := new(MockUserRepository)
 	userID := uuid.New()
 	existingPassword := "hashedPassword"
 	existingUser := &models.User{ID: userID, Email: "existing@example.com", Password: existingPassword}
@@ -122,7 +121,7 @@ func TestUpdateUser_PasswordNotChanged(t *testing.T) {
 	}).Return(func(args mock.Arguments) (*models.User, error) {
 		return updatedUserToReturn, nil
 	})
-	mockLogger := new(services.MockLogger)
+	mockLogger := new(MockLogger)
 	mockLogger.On("Error", "Error deleting user with ID: %s, %v", mock.MatchedBy(func(args []interface{}) bool {
 		// You can add further conditions to verify the contents of the slice if necessary.
 		return true
@@ -144,8 +143,8 @@ func TestUpdateUser_PasswordNotChanged(t *testing.T) {
 
 func TestDeleteUser_Success(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
-	mockLogger := new(services.MockLogger)
+	mockRepo := new(MockUserRepository)
+	mockLogger := new(MockLogger)
 	id := uuid.New()
 
 	mockRepo.On("Delete", id).Return(nil)
@@ -162,7 +161,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 func TestGetUserByEmail_Success(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
+	mockRepo := new(MockUserRepository)
 	email := "test@example.com"
 
 	user := &models.User{
@@ -184,8 +183,8 @@ func TestGetUserByEmail_Success(t *testing.T) {
 
 func TestGetUserByEmail_RepoError(t *testing.T) {
 	// Arrange
-	mockRepo := new(services.MockUserRepository)
-	mockLogger := new(services.MockLogger)
+	mockRepo := new(MockUserRepository)
+	mockLogger := new(MockLogger)
 	email := "test@example.com"
 
 	mockRepo.On("FindByEmail", email).Return(nil, errors.New("database error"))
