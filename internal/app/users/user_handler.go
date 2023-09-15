@@ -20,7 +20,51 @@ func NewHandler(userService UserService, authService authentication.IService) *H
 }
 
 func (h *Handler) Update(c *gin.Context) {
+	var user dto.UserRequest
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
 
+	accessToken, err := c.Cookie("access_token")
+	if err != nil {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
+	// check if userRequest.password is not empty
+	if user.Password != "" {
+		err = h.authService.ChangePassword(accessToken, user.Password)
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	userID, err := h.authService.GetIdFromToken(accessToken)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	userToUpdate, err := h.userService.GetUserByID(userID)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	userToUpdate.Email = user.Email
+
+	updatedUser, err := h.userService.UpdateUser(*userToUpdate)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	userResponse := dto.UserResponse{
+		ID:    updatedUser.ID,
+		Email: updatedUser.Email,
+	}
+	c.JSON(http.StatusOK, userResponse)
 }
 
 func (h *Handler) GetCurrentUser(c *gin.Context) {
