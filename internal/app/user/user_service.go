@@ -1,4 +1,4 @@
-package services
+package user
 
 import (
 	"automation-hub-idp/internal/app/models"
@@ -14,7 +14,7 @@ type userServiceImpl struct {
 	logger   iservice.Logger
 }
 
-func NewUserService(repo irepository.UserRepository, logger iservice.Logger) iservice.UserService {
+func NewUserService(repo irepository.UserRepository, logger iservice.Logger) UserService {
 	return &userServiceImpl{
 		userRepo: repo,
 		logger:   logger,

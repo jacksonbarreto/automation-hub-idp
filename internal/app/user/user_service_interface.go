@@ -1,4 +1,4 @@
-package iservice
+package user
 
 import (
 	"automation-hub-idp/internal/app/models"

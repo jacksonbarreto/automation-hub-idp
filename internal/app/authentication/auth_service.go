@@ -7,6 +7,7 @@ import (
 	"automation-hub-idp/internal/app/repositories"
 	"automation-hub-idp/internal/app/services"
 	"automation-hub-idp/internal/app/services/iservice"
+	"automation-hub-idp/internal/app/user"
 	"automation-hub-idp/internal/app/utils"
 	"automation-hub-idp/internal/infra"
 	"errors"
@@ -18,7 +19,7 @@ import (
 )
 
 type service struct {
-	userService      iservice.UserService
+	userService      user.UserService
 	hasher           utils.PasswordHasher
 	blockListService iservice.TokenBlockListService
 	logger           iservice.Logger
@@ -26,7 +27,7 @@ type service struct {
 	jwtSecret        string
 }
 
-func NewService(userService iservice.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
+func NewService(userService user.UserService, hasher utils.PasswordHasher, sender iservice.MessageSender,
 	blockListService iservice.TokenBlockListService, logger iservice.Logger, jwtSecret string) IService {
 	return &service{
 		userService:      userService,
@@ -48,7 +49,7 @@ func GetDefaultAuthService() (IService, error) {
 		return nil, err
 	}
 	userRepository := repositories.NewGormUserRepository(database, logger)
-	userService := services.NewUserService(userRepository, logger)
+	userService := user.NewUserService(userRepository, logger)
 	hasher := utils.DefaultBcryptHasher()
 	sender, err := services.NewKafkaMessageSender()
 	if err != nil {
