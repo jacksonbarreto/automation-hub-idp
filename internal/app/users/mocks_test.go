@@ -27,34 +27,6 @@ func (m *MockLogger) Debug(message string, args ...interface{}) {
 	m.Called(message, args)
 }
 
-type MockEmailService struct {
-	mock.Mock
-}
-
-func (m *MockEmailService) SendEmail(to, subject, body string) error {
-	args := m.Called(to, subject, body)
-	return args.Error(0)
-}
-
-func (m *MockEmailService) SendTemplatedEmail(to, subject, templateName string, data map[string]interface{}) error {
-	args := m.Called(to, subject, templateName, data)
-	return args.Error(0)
-}
-
-type MockPasswordHasher struct {
-	mock.Mock
-}
-
-func (m *MockPasswordHasher) Hash(password string) (string, error) {
-	args := m.Called(password)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockPasswordHasher) Compare(hashedPassword, password string) error {
-	args := m.Called(hashedPassword, password)
-	return args.Error(0)
-}
-
 type MockUserRepository struct {
 	mock.Mock
 }
