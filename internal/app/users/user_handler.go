@@ -114,39 +114,3 @@ func (h *Handler) GetCurrentUser(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, userResponse)
 }
-
-// ChangePassword
-// @Summary ChangePassword
-// @Description ChangePassword
-// @Tags Users
-// @Accept json
-// @Param user body dto.UserRequest true "User object"
-// @Success 200 "Successfully changed password"
-// @Failure 400 "Bad Request"
-// @Failure 401 "Unauthorized"
-// @Failure 500 "Internal Server Error"
-// @Router /user/change-password [patch]
-func (h *Handler) ChangePassword(c *gin.Context) {
-	temp, ok := c.Get("userID")
-	if !ok {
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-	userID := temp.(uuid.UUID)
-
-	var user dto.UserRequest
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.Status(http.StatusBadRequest)
-		return
-	}
-
-	user.ID = userID
-
-	err := h.userService.UpdatePassword(user.ID, user.Password)
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	c.Status(http.StatusOK)
-}

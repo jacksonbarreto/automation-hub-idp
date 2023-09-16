@@ -53,7 +53,6 @@ func initializeAuthRoutes(apiVersion *gin.RouterGroup) error {
 	{
 		user.GET("/", authMiddleware, userHandler.GetCurrentUser)
 		user.PATCH("/", authMiddleware, userHandler.Update)
-		auth.PATCH("/change-password", authMiddleware, userHandler.ChangePassword)
 	}
 	return nil
 }
