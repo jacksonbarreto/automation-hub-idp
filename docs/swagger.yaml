@@ -1,30 +1,9 @@
 definitions:
-  dto.AuthenticateStatusResponse:
-    properties:
-      authenticated:
-        type: boolean
-      statusCode:
-        type: integer
-    type: object
   dto.ErrorResponse:
     properties:
       errorCode:
         type: integer
       message:
-        type: string
-    type: object
-  dto.SuccessResponse:
-    properties:
-      message:
-        type: string
-      statusCode:
-        type: integer
-    type: object
-  dto.TokenDto:
-    properties:
-      access_token:
-        type: string
-      refresh_token:
         type: string
     type: object
   dto.UserDTO:
@@ -36,43 +15,35 @@ definitions:
       password:
         type: string
     type: object
+  dto.UserLoginDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.UserRequest:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+    type: object
 info:
   contact: {}
 paths:
-  /auth/change-password:
-    post:
-      consumes:
-      - application/x-www-form-urlencoded
-      description: ChangePassword
-      parameters:
-      - description: Authorization
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: newPassword
-        in: formData
-        name: newPassword
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.SuccessResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: ChangePassword
-      tags:
-      - Authentication
   /auth/confirm-password-reset:
     post:
       consumes:
@@ -108,126 +79,51 @@ paths:
       tags:
       - Authentication
   /auth/is-user-authenticated:
-    post:
-      consumes:
-      - application/json
+    get:
       description: IsUserAuthenticated
-      parameters:
-      - description: accesstoken
-        in: body
-        name: token
-        required: true
-        schema:
-          $ref: '#/definitions/dto.TokenDto'
-      produces:
-      - application/json
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/dto.AuthenticateStatusResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
         "500":
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
       summary: IsUserAuthenticated
       tags:
       - Authentication
   /auth/login:
     post:
       consumes:
-      - application/x-www-form-urlencoded
+      - application/json
       description: Login
       parameters:
-      - description: Email
-        in: formData
-        name: email
+      - description: User object
+        in: body
+        name: body
         required: true
-        type: string
-      - description: Password
-        in: formData
-        name: password
-        required: true
-        type: string
-      produces:
-      - application/json
+        schema:
+          $ref: '#/definitions/dto.UserLoginDTO'
       responses:
         "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.TokenDto'
+          description: Successfully logged in
         "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
+          description: Unauthorized
         "500":
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
       summary: Login
       tags:
       - Authentication
   /auth/logout:
     get:
-      consumes:
-      - application/json
       description: Logout
-      parameters:
-      - description: Authorization
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
       responses:
         "200":
           description: OK
-          schema:
-            type: string
         "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
+          description: Unauthorized
         "500":
           description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
       summary: Logout
-      tags:
-      - Authentication
-  /auth/refresh-token:
-    post:
-      consumes:
-      - application/json
-      description: RefreshToken
-      parameters:
-      - description: refreshToken
-        in: body
-        name: token
-        required: true
-        schema:
-          $ref: '#/definitions/dto.TokenDto'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      summary: RefreshToken
       tags:
       - Authentication
   /auth/register:
@@ -236,9 +132,9 @@ paths:
       - application/json
       description: Register a new user
       parameters:
-      - description: User object
+      - description: User registration details
         in: body
-        name: user
+        name: body
         required: true
         schema:
           $ref: '#/definitions/dto.UserDTO'
@@ -289,4 +185,83 @@ paths:
       summary: RequestPasswordReset
       tags:
       - Authentication
+  /user:
+    get:
+      description: GetCurrentUser
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: GetCurrentUser
+      tags:
+      - Users
+  /user/change-password:
+    patch:
+      consumes:
+      - application/json
+      description: ChangePassword
+      parameters:
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserRequest'
+      responses:
+        "200":
+          description: Successfully changed password
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal Server Error
+      summary: ChangePassword
+      tags:
+      - Users
+  /users:
+    patch:
+      consumes:
+      - application/json
+      description: Update a user
+      parameters:
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update a user
+      tags:
+      - Users
 swagger: "2.0"

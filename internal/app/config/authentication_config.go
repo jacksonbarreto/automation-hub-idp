@@ -1,6 +1,7 @@
 package config
 
 import (
+	"automation-hub-idp/internal/app/utils"
 	"errors"
 	"fmt"
 	"time"
@@ -30,6 +31,7 @@ type authenticationConfig struct {
 	AccountBlockedTopic           string
 	AccountCreatedTopic           string
 	JwtSecret                     string
+	PasswordHasher                utils.PasswordHasher
 }
 
 func newAuthenticationConfig() (*authenticationConfig, error) {
@@ -68,5 +70,6 @@ func newAuthenticationConfig() (*authenticationConfig, error) {
 		AccountBlockedTopic:           accountBlockedTopicValue,
 		AccountCreatedTopic:           accountCreatedTopicValue,
 		JwtSecret:                     jwtSecret,
+		PasswordHasher:                utils.DefaultBcryptHasher(),
 	}, nil
 }

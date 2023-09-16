@@ -4,12 +4,10 @@ import (
 	"automation-hub-idp/internal/app/config"
 	"automation-hub-idp/internal/app/dto"
 	"automation-hub-idp/internal/app/models"
-	"automation-hub-idp/internal/app/repositories"
 	"automation-hub-idp/internal/app/services"
 	"automation-hub-idp/internal/app/services/iservice"
 	"automation-hub-idp/internal/app/users"
 	"automation-hub-idp/internal/app/utils"
-	"automation-hub-idp/internal/infra"
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
@@ -44,13 +42,14 @@ func GetDefaultAuthService() (IService, error) {
 	if err != nil {
 		return nil, err
 	}
-	database, err := infra.GetDefaultDB()
 	if err != nil {
 		return nil, err
 	}
-	userRepository := repositories.NewGormUserRepository(database, logger)
-	userService := users.NewUserService(userRepository, logger)
-	hasher := utils.DefaultBcryptHasher()
+	userService, err := users.GetDefaultUserService()
+	if err != nil {
+		return nil, err
+	}
+	hasher := config.AuthenticationConfig.PasswordHasher
 	sender, err := services.NewKafkaMessageSender()
 	if err != nil {
 		return nil, err

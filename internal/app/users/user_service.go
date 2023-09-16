@@ -16,12 +16,14 @@ import (
 type userServiceImpl struct {
 	userRepo irepository.UserRepository
 	logger   iservice.Logger
+	hasher   utils.PasswordHasher
 }
 
-func NewUserService(repo irepository.UserRepository, logger iservice.Logger) UserService {
+func NewUserService(repo irepository.UserRepository, logger iservice.Logger, hasher utils.PasswordHasher) UserService {
 	return &userServiceImpl{
 		userRepo: repo,
 		logger:   logger,
+		hasher:   hasher,
 	}
 }
 
@@ -35,7 +37,8 @@ func GetDefaultUserService() (UserService, error) {
 		return nil, err
 	}
 	userRepository := repositories.NewGormUserRepository(database, logger)
-	return NewUserService(userRepository, logger), nil
+	hasher := config.AuthenticationConfig.PasswordHasher
+	return NewUserService(userRepository, logger, hasher), nil
 }
 
 func (s *userServiceImpl) CreateUser(user models.User) (*models.User, error) {
@@ -94,8 +97,14 @@ func (s *userServiceImpl) UpdatePassword(id uuid.UUID, newPassword string) error
 		return errors.New("error fetching user")
 	}
 
-	user.Password = newPassword
+	user.Password, err = s.hasher.Hash(newPassword)
+	if err != nil {
+		s.logger.Error("Error hashing password for user with ID: %s, %v", id, err)
+		return errors.New("error hashing password")
+	}
+
 	user.FirstAccess = false
+
 	_, err = s.userRepo.Update(user)
 	if err != nil {
 		s.logger.Error("Error updating user with ID: %s, %v", id, err)

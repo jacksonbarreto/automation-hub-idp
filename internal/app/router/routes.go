@@ -37,25 +37,23 @@ func initializeAuthRoutes(apiVersion *gin.RouterGroup) error {
 	if err != nil {
 		return err
 	}
-	userHandler := users.NewHandler(userService, authService)
+	userHandler := users.NewHandler(userService)
 
 	auth := apiVersion.Group("/auth")
 	{
-		// initialize auth routes
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.GET("/logout", authMiddleware, authHandler.Logout)
 		auth.POST("/request-password-reset", authHandler.RequestPasswordReset)
 		auth.POST("/confirm-password-reset/:reset-token", authHandler.ConfirmPasswordReset)
-		auth.POST("/change-password", authMiddleware, authHandler.ChangePassword)
 		auth.GET("/is-user-authenticated", authHandler.IsUserAuthenticated)
 	}
 
 	user := apiVersion.Group("/user")
 	{
-		// initialize user routes
-		user.GET("/current", authMiddleware, userHandler.GetCurrentUser)
+		user.GET("/", authMiddleware, userHandler.GetCurrentUser)
 		user.PATCH("/", authMiddleware, userHandler.Update)
+		auth.PATCH("/change-password", authMiddleware, userHandler.ChangePassword)
 	}
 	return nil
 }

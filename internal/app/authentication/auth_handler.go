@@ -23,7 +23,7 @@ func NewHandler(authService IService) *Handler {
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param user body dto.UserDTO true "User object"
+// @Param body body dto.UserDTO true "User registration details"
 // @Success 200 {object} dto.UserDTO
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
@@ -54,8 +54,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Description Login
 // @Tags Authentication
 // @Accept application/json
-// @Param body dto.UserLoginDTO
-// @Param password formData string true "Password"
+// @Param body body dto.UserLoginDTO true "User object"
 // @Success 200 "Successfully logged in"
 // @Failure 400 "Unauthorized"
 // @Failure 500 "Internal Server Error"
@@ -130,7 +129,7 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Description IsUserAuthenticated
 // @Tags Authentication
 // @Success 200 "OK"
-// @Failure 400 "Unauthorized"
+// @Failure 401 "Unauthorized"
 // @Failure 500 "Internal Server Error"
 // @Router /auth/is-user-authenticated [get]
 func (h *Handler) IsUserAuthenticated(c *gin.Context) {
@@ -232,40 +231,5 @@ func (h *Handler) ConfirmPasswordReset(c *gin.Context) {
 		Message:    "Password reset successfully",
 		StatusCode: http.StatusOK,
 	}
-	c.JSON(http.StatusOK, response)
-}
-
-// ChangePassword
-// @Summary ChangePassword
-// @Description ChangePassword
-// @Tags Authentication
-// @Accept application/x-www-form-urlencoded
-// @Produce json
-// @Param newPassword formData string true "newPassword"
-// @Success 200 {object} dto.SuccessResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /auth/change-password [post]
-func (h *Handler) ChangePassword(c *gin.Context) {
-	accessToken, err := c.Cookie("access_token")
-	if err != nil {
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-	var errorResponse dto.ErrorResponse
-	newPassword := c.PostForm("newPassword")
-
-	err = h.authService.ChangePassword(accessToken, newPassword)
-	if err != nil {
-		errorResponse.Message = err.Error()
-		errorResponse.ErrorCode = http.StatusInternalServerError
-		c.JSON(http.StatusInternalServerError, errorResponse)
-		return
-	}
-	response := dto.SuccessResponse{
-		Message:    "Password changed successfully",
-		StatusCode: http.StatusOK,
-	}
-
 	c.JSON(http.StatusOK, response)
 }
