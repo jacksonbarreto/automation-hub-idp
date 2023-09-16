@@ -77,3 +77,17 @@ func (m *MockUserRepository) FindByResetToken(token string) (*models.User, error
 	}
 	return args.Get(0).(*models.User), args.Error(1)
 }
+
+type MockPasswordHasher struct {
+	mock.Mock
+}
+
+func (m *MockPasswordHasher) Hash(password string) (string, error) {
+	args := m.Called(password)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockPasswordHasher) Compare(hashedPassword, password string) error {
+	args := m.Called(hashedPassword, password)
+	return args.Error(0)
+}

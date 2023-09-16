@@ -14,6 +14,7 @@ func TestCreateUser_Success(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
 	mockLogger := new(MockLogger)
+	hasher := new(MockPasswordHasher)
 	email := "test@example.com"
 	user := models.User{Email: email, Password: "test123"}
 
@@ -23,7 +24,7 @@ func TestCreateUser_Success(t *testing.T) {
 	expectedUser := user
 	mockRepo.On("Create", &expectedUser).Return(&expectedUser, nil)
 
-	service := NewUserService(mockRepo, mockLogger)
+	service := NewUserService(mockRepo, mockLogger, hasher)
 
 	// Act
 	result, err := service.CreateUser(user)
@@ -39,12 +40,13 @@ func TestGetUserByID(t *testing.T) {
 	// Arrange
 	mockRepo := new(MockUserRepository)
 	mockLogger := new(MockLogger)
+	hasher := new(MockPasswordHasher)
 	id := uuid.New()
 	user := models.User{ID: id, Email: "test@example.com"}
 
 	mockRepo.On("FindByID", id).Return(&user, nil)
 
-	service := NewUserService(mockRepo, mockLogger)
+	service := NewUserService(mockRepo, mockLogger, hasher)
 
 	// Act
 	result, err := service.GetUserByID(id)
@@ -66,7 +68,7 @@ func TestGetAllUsers_WithDefaultPagination(t *testing.T) {
 	defaultPagination := utils.DefaultPagination()
 	mockRepo.On("FindAll", defaultPagination).Return(users, nil)
 
-	service := NewUserService(mockRepo, nil)
+	service := NewUserService(mockRepo, nil, nil)
 
 	// Act
 	result, err := service.GetAllUsers(nil)
@@ -90,7 +92,7 @@ func TestUpdateUser_Success(t *testing.T) {
 	updatedUser.Password = "hashedPassword"
 	mockRepo.On("Update", &updatedUser).Return(&updatedUser, nil)
 
-	service := NewUserService(mockRepo, nil)
+	service := NewUserService(mockRepo, nil, nil)
 
 	// Act
 	result, err := service.UpdateUser(newUser)
@@ -122,12 +124,15 @@ func TestUpdateUser_PasswordNotChanged(t *testing.T) {
 		return updatedUserToReturn, nil
 	})
 	mockLogger := new(MockLogger)
+	hasher := new(MockPasswordHasher)
+
+	hasher.On("Hash", mock.AnythingOfType("string")).Return(existingPassword, nil)
 	mockLogger.On("Error", "Error deleting user with ID: %s, %v", mock.MatchedBy(func(args []interface{}) bool {
 		// You can add further conditions to verify the contents of the slice if necessary.
 		return true
 	})).Return()
 
-	service := NewUserService(mockRepo, mockLogger)
+	service := NewUserService(mockRepo, mockLogger, hasher)
 
 	// Act
 	result, err := service.UpdateUser(newUser)
@@ -149,7 +154,7 @@ func TestDeleteUser_Success(t *testing.T) {
 
 	mockRepo.On("Delete", id).Return(nil)
 
-	service := NewUserService(mockRepo, mockLogger)
+	service := NewUserService(mockRepo, mockLogger, nil)
 
 	// Act
 	err := service.DeleteUser(id)
@@ -170,7 +175,7 @@ func TestGetUserByEmail_Success(t *testing.T) {
 
 	mockRepo.On("FindByEmail", email).Return(user, nil)
 
-	service := NewUserService(mockRepo, nil)
+	service := NewUserService(mockRepo, nil, nil)
 
 	// Act
 	result, err := service.GetUserByEmail(email)
@@ -189,7 +194,7 @@ func TestGetUserByEmail_RepoError(t *testing.T) {
 
 	mockRepo.On("FindByEmail", email).Return(nil, errors.New("database error"))
 	mockLogger.On("Error", mock.Anything, mock.Anything).Return()
-	service := NewUserService(mockRepo, mockLogger)
+	service := NewUserService(mockRepo, mockLogger, nil)
 
 	// Act
 	result, err := service.GetUserByEmail(email)
